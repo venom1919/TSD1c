@@ -35,7 +35,6 @@ public class ServiceRestartApp extends Service {
 
         Intent intentPowerOn = new Intent(this, ServiceApp.class) ;
         startService(intentPowerOn);
-
     }
 
     @Override
