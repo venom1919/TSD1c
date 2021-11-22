@@ -137,7 +137,15 @@ public class ServiceApp extends Service {
         }
     };
 
-public void downloadFiles(String name_file, String data) {
+    @Override
+    public void onDestroy() {
+
+        super.onDestroy();
+        Log.d("On_Destroy_Tsd", String.valueOf(new Date())) ;
+
+    }
+
+    public void downloadFiles(String name_file, String data) {
 
     File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
     Writer wr = null;
@@ -149,7 +157,6 @@ public void downloadFiles(String name_file, String data) {
         wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
         wr.write(data);
         wr.close();
-        Log.i("wr_end" , data);
 
     } catch (FileNotFoundException e) {
         e.printStackTrace();
@@ -158,7 +165,7 @@ public void downloadFiles(String name_file, String data) {
     }
 
 
-    try {
+    try{
         final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
 
 //         path.mkdirs();
