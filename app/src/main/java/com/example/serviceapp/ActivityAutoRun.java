@@ -22,49 +22,14 @@ public class ActivityAutoRun extends AppCompatActivity {
 //        Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
 //        startActivity(launchIntent);
 
-        PackageManager pac = getPackageManager() ;
+        PackageManager pac = getPackageManager();
         ApplicationInfo ai = null;
         try {
             ai = pac.getApplicationInfo("com.treedo.taburetka.tsd", 0);
-            String namea  = ai.name ;
-//            Log.i("namem ;" ,namea) ;
+            String namea = ai.name;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
         CharSequence name = pac.getApplicationLabel(ai);
-
-        Log.i("Char_nameq1", name.toString()) ;
-
-        //List<ActivityManager.RunningAppProcessInfo> activityes = ((ActivityManager)manager).getRunningAppProcesses();
-        Log.d("ASdsdasdas", "1c");
-        Log.i("ASdsdaxcxz", "1c");
-
     }
-
-//    @Override
-//    protected void onStop() {
-//        super.onStop();
-//        Log.i("stop_id" , "sds") ;
-//    }
-//
-//
-//    @Override
-//    protected void onDestroy() {
-//        super.onDestroy();
-//        Log.i("stop_id_1" , "sds") ;
-//    }
-//
-//    @Override
-//    public void closeContextMenu() {
-//        super.closeContextMenu();
-//        Log.i("stop_id" , "sds123") ;
-//
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//        super.onPause();
-//        Log.i("stop_id" , "sdssds") ;
-//
-//    }
 }

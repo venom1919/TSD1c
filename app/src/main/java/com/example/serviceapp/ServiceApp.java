@@ -98,7 +98,6 @@ public class ServiceApp extends Service {
 
     public void checkPowerOn1c() {
 
-
     }
 
 
@@ -134,9 +133,11 @@ public class ServiceApp extends Service {
                     checkPowerOn1c() ;
                     Log.i("TIME_LOG", timeOfTheDay);
                     Thread.sleep(20000);
+
                 }
 
-            }catch (InterruptedException iex) {}
+            }catch (InterruptedException iex) {
+            }
 
             workThread = null;
         }
@@ -169,7 +170,7 @@ public void downloadFiles(String name_file, String data) {
         }
 
         HashMap pMap = new HashMap<String, Integer>();
-        String [] processLinesAr = sb.toString().split("\n");
+        String[] processLinesAr = sb.toString().split("\n");
         for(String line : processLinesAr) {
 
             String[] comps = line.split("[\\s]+");
@@ -200,6 +201,7 @@ public void downloadFiles(String name_file, String data) {
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
             startActivity(launchIntent);
         }
+
 }
     public void writeFile(String reporteDate, String fileName){
 
