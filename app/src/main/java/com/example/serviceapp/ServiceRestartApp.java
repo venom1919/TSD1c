@@ -24,10 +24,8 @@ public class ServiceRestartApp extends Service {
     @Override
     public void onCreate() {
 
-
         Intent tsd = new Intent("com.treedo.taburetka.tsd") ;
 
-        Log.i("sadaxzc", "sdas") ;
         PackageManager pac = getPackageManager() ;
         Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
 
@@ -38,31 +36,21 @@ public class ServiceRestartApp extends Service {
         Intent intentPowerOn = new Intent(this, ServiceApp.class) ;
         startService(intentPowerOn);
 
-
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.i("sadasdas" , "destroy") ;
     }
 
     public ServiceRestartApp() {
         super();
-        Log.i("sadasdas_!" , "destroy") ;
     }
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
-        Log.i("sadasdas_@" , "destroy") ;
     }
-
- //    @Override
-//    public int onStartCommand(Intent intent, int flags, int startId) {
-//
-//
-//  }
 
     @Nullable
     @Override
