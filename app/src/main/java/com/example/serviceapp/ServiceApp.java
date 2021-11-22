@@ -1,5 +1,6 @@
 package com.example.serviceapp;
 
+import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -17,6 +18,9 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.Build;
@@ -27,9 +31,11 @@ import android.provider.Settings;
 import android.telephony.DataFailCause;
 import android.util.Log;
 import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
+import androidx.core.app.ActivityCompat;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -82,6 +88,46 @@ public class ServiceApp extends Service {
 //
 //        DownloadFile(reportDate, reportDate);
 //    }
+
+    private void getLocation() {
+
+        LocationManager locationManager = null;
+        List<String> locManagers;
+        String theBestProvider = "";
+        boolean haveBestProvider = false;
+        locManagers = locationManager.getAllProviders();
+        Criteria criteria = new Criteria();
+
+        try {
+            theBestProvider = locationManager.getBestProvider(criteria, true);
+        } catch (NullPointerException ex) {
+            ex.printStackTrace();
+        }
+
+        if (theBestProvider != "" || theBestProvider != null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                return;
+            }
+            android.location.Location loc = locationManager.getLastKnownLocation(theBestProvider);
+        }
+
+
+
+
+
+//        if (locationManager.getAllProviders().size() != 0) {
+//
+//        }else {
+//        }
+
+
+
+
+
+
+
+    }
 
     public boolean isAppInstalled(String packageName) {
 
