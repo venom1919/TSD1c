@@ -9,6 +9,7 @@ import android.app.Service;
 import android.app.TaskInfo;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -33,6 +34,7 @@ import androidx.annotation.RequiresPermission;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilterInputStream;
@@ -63,8 +65,6 @@ public class ServiceApp extends Service {
 
     private final static String FILE_NAME = "content.txt";
 
-    Intent intent = new Intent() ;
-
     Thread workThread = null;
 
 //    @Override
@@ -84,22 +84,18 @@ public class ServiceApp extends Service {
 //    }
 
     public boolean isAppInstalled(String packageName) {
+
         PackageManager pm = getPackageManager();
 
         try {
             pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
             return pm.getApplicationInfo(packageName, 0).enabled;
         }
-        catch (PackageManager.NameNotFoundException e) {
+        catch(PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             return false;
         }
     }
-
-    public void checkPowerOn1c() {
-
-    }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -110,7 +106,6 @@ public class ServiceApp extends Service {
         }
         return Service.START_STICKY;
     }
-
 
     final Runnable run = new Runnable() {
 
@@ -130,13 +125,12 @@ public class ServiceApp extends Service {
 
                     downloadFiles(dayOfTheWeek, timeOfTheDay) ;
 
-                    checkPowerOn1c() ;
                     Log.i("TIME_LOG", timeOfTheDay);
                     Thread.sleep(20000);
-
                 }
 
             }catch (InterruptedException iex) {
+                iex.printStackTrace();
             }
 
             workThread = null;
@@ -147,16 +141,32 @@ public void downloadFiles(String name_file, String data) {
 
     File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
     Writer wr = null;
-    FileOutputStream fos = null;
+    //FileOutputStream fos = null;
     boolean isHaveInstanceProccesTSD = false ;
 
     try {
-
-        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
-
         path.mkdirs();
         wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
         wr.write(data);
+        wr.close();
+        Log.i("wr_end" , data);
+
+    } catch (FileNotFoundException e) {
+        e.printStackTrace();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+
+
+    try {
+        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
+
+//         path.mkdirs();
+//         wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
+//         Log.i("wr_is" , wr.toString());
+//
+//         wr.write(data);
+//         Log.i("wr_end" , data);
 
         /////TSD
         Process p = Runtime.getRuntime().exec("ps");
@@ -169,15 +179,15 @@ public void downloadFiles(String name_file, String data) {
             sb.append(buf, 0, ch);
         }
 
-        HashMap pMap = new HashMap<String, Integer>();
+//        HashMap pMap = new HashMap<String, Integer>();
         String[] processLinesAr = sb.toString().split("\n");
+
         for(String line : processLinesAr) {
 
             String[] comps = line.split("[\\s]+");
 
             if (comps.length != 9) {
                 String packageName = comps[5] ;
-                Log.i("tututut", packageName) ;
             }else {
 
                 int pid = Integer.parseInt(comps[1]);
@@ -185,8 +195,7 @@ public void downloadFiles(String name_file, String data) {
                 if (packageName.equals(tsdTaburetka)){
                    isHaveInstanceProccesTSD =true ;
                 }
-                pMap.put(packageName, pid);
-                Log.i("taburetka_tututu", packageName + " " + pid) ;
+//                pMap.put(packageName, pid);
             }
         }
 
@@ -195,7 +204,6 @@ public void downloadFiles(String name_file, String data) {
     } catch (IOException e) {
         e.printStackTrace();
     }
-
         if(!isHaveInstanceProccesTSD){
             PackageManager pac = getPackageManager() ;
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
@@ -215,12 +223,13 @@ public void downloadFiles(String name_file, String data) {
         } catch (IOException ex) {
 
             Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+
         } finally {
+
             try {
                 if (fos != null)
                     fos.close();
             } catch (IOException ex) {
-
                 Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
