@@ -80,23 +80,12 @@ public class ServiceApp extends Service {
 
     Thread workThread = null;
     boolean TsdTaburetkaUa = true ;
+    String theBestProvider = "";
+    String provider_inet = "";
+    boolean haveBestProvider = false;
+    Criteria criteria = new Criteria();
+    android.location.Location loc ;
 
-
-//    @Override
-//    public void onCreate() {
-//
-////      Random random = new Random() ;
-//        Date date = Calendar.getInstance().getTime();
-//        DateFormat formatDate = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss") ;
-//
-//        String reportDate = formatDate.format(date);
-//        reportDate = reportDate + ".txt" ;
-//
-//        writeFile(reportDate, new String("on")) ;
-//
-//
-//        DownloadFile(reportDate, reportDate);
-//    }
 
     private void getLocation() {
 
@@ -108,15 +97,6 @@ public class ServiceApp extends Service {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-
-//        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
-//            @Override
-//            public void onLocationChanged(@NonNull Location location) {
-//                Log.i("yuyuuy", String.valueOf(location.getLongitude()) + "" + String.valueOf(location.getLatitude()));
-//                locationManager.removeUpdates(this);
-//            }
-//        });
-
 
         LocationListener locationListener = new LocationListener() {
 
@@ -149,39 +129,24 @@ public class ServiceApp extends Service {
             }
         };
 
-        String theBestProvider = "";
-        String provider_inet = "";
-        boolean haveBestProvider = false;
-        Criteria criteria = new Criteria();
-        android.location.Location loc ;
+
 
         try {
 
             if (isNetworkEnabled){
-
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                Log.i("Networf", String.valueOf(loc.getLatitude()) + String.valueOf(loc.getLongitude())) ;
-
+                Log.i("IsNewtw", "net") ;
             }else if (isPassiveProvider){
-
                 locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                Log.i("Networf", String.valueOf(loc.getLatitude()) + String.valueOf(loc.getLongitude())) ;
-
-                }else {
-
+                Log.i("IsPassive_1", "net") ;
+            }else {
+                Log.i("IsGPS_2", "net") ;
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                Log.i("Networf", String.valueOf(loc.getLatitude()) + String.valueOf(loc.getLongitude())) ;
+            }
 
-                }
-
-//            provider_inet = locationManager.getAllProviders().get(1);
             List<String> providers = locationManager.getAllProviders();
             for (String str : providers) {
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
                     return;
                 }
                 android.location.Location loc_3 = locationManager.getLastKnownLocation(str);
@@ -191,13 +156,12 @@ public class ServiceApp extends Service {
                 }
                 Log.i("prov_12,", String.valueOf(loc_3.getLatitude() + " " +  loc_3.getLongitude()) + " " + str) ;
             }
-//            Log.i("provider_inet" ,provider_inet) ;
+
             theBestProvider = locationManager.getBestProvider(criteria, false);
-//            Log.i("thebest", theBestProvider) ;
+
         } catch (NullPointerException ex) {
             ex.printStackTrace();
         }
-
 
     }
 
