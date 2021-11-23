@@ -1,36 +1,78 @@
 package com.example.serviceapp;
 
 import android.Manifest;
+import android.accessibilityservice.AccessibilityService;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.AppOpsManager;
 import android.app.Service;
+import android.app.TaskInfo;
+import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.TrafficStats;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Trace;
+import android.provider.Settings;
+import android.telephony.DataFailCause;
 import android.util.Log;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static android.app.PendingIntent.getActivity;
 
@@ -40,11 +82,6 @@ public class ServiceApp extends Service {
 
     Thread workThread = null;
     boolean TsdTaburetkaUa = true ;
-    String theBestProvider = "";
-    String provider_inet = "";
-    boolean haveBestProvider = false;
-    Criteria criteria = new Criteria();
-    android.location.Location loc ;
 
 
     private void getLocation() {
@@ -62,6 +99,7 @@ public class ServiceApp extends Service {
         {
             isNetworkEnabled  = true ;
         }
+
         else {
             isNetworkEnabled = false ;
         }
@@ -73,24 +111,65 @@ public class ServiceApp extends Service {
             return;
         }
 
+        LocationListener locationListener = new LocationListener() {
+
+            public void onLocationChanged(Location location) {
+
+                Log.i("ISKSK", "sss");
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+
+                Log.i("scgfw" ,String.valueOf(latitude) + " " + String.valueOf(longitude)) ;
+
+                JSONObject json = new JSONObject() ;
+                try {
+                    json.put(String.valueOf(new Date()), "Dolg." + latitude + " "  + "Shir." + longitude) ;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                location.reset();
+
+            }
+
+//            public void onStatusChanged(String provider, int status,Bundle extras) {
+//                Log.i("onStusChade" ,"asdas");
+//            }
+//
+//            public void onProviderEnabled(String provider) {
+//                Log.i("onStusChade" ,"asdas");
+//            }
+//
+//            public void onProviderDisabled(String provider) {
+//                Log.i("onStusChade_2" ,"asdas");
+//            }
+        };
+
+        String theBestProvider = "";
+        String provider_inet = "";
+        boolean haveBestProvider = false;
+        Criteria criteria = new Criteria();
+        android.location.Location loc ;
+
 
         try {
 
             if (isNetworkEnabled){
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, hhh(), Looper.getMainLooper());
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
                 Log.i("IsNewtw", "net") ;
 //            }else if (isPassiveProvider){
 //                locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
 //                Location loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER) ;
 //                Log.i("IsPassive_1", "net") ;
 //                Log.i("IsPassive_loc" ,String.valueOf(loc.getLatitude()) + " " + loc.getLongitude()) ;
-            }else if(isGPSEnabled){
+            }else{
+
                 Log.i("IsGPS_2", "net") ;
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, hhh(), Looper.getMainLooper());
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 120000, 10, locationListener , Looper.getMainLooper());
 
             }
 
-
+//
 //            List<String> providers = locationManager.getAllProviders();
 //            for (String str : providers) {
 //                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -107,46 +186,12 @@ public class ServiceApp extends Service {
             theBestProvider = locationManager.getBestProvider(criteria, false);
 
         } catch (NullPointerException ex) {
+
+            Log.i("SSSSSSSSSSSSS", ex.getMessage());
             ex.printStackTrace();
         }
 
-    }
 
-    public LocationListener hhh(){
-       Log.i("ssssccc" , "sdsad") ;
-
-
-        LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-
-                Log.i("ISKSK", "sss");
-                double latitude = location.getLatitude();
-                double longitude = location.getLongitude();
-
-                Log.i("scgfw" ,String.valueOf(latitude) + " " + String.valueOf(longitude)) ;
-
-                JSONObject json = new JSONObject() ;
-                try {
-                    json.put(String.valueOf(new Date()), "Dolg." + latitude + " "  + "Shir." + longitude) ;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-            }
-//
-//            public void onStatusChanged(String provider, int status,Bundle extras) {
-//                Log.i("onStusChade" ,"asdas");
-//            }
-//
-//            public void onProviderEnabled(String provider) {
-//                Log.i("onStusChade" ,"asdas");
-//            }
-//
-//            public void onProviderDisabled(String provider) {
-//                Log.i("onStusChade_2" ,"asdas");
-//            }
-        };
-        return locationListener;
     }
 
     public boolean isAppInstalled(String packageName) {
@@ -166,6 +211,8 @@ public class ServiceApp extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        getLocation() ;
+
         if (workThread == null) {
             workThread = new Thread(run);
             workThread.start();
@@ -180,7 +227,6 @@ public class ServiceApp extends Service {
 
             try {
                 while(true){
-
 
                     getLocation() ;
 
@@ -205,11 +251,6 @@ public class ServiceApp extends Service {
             workThread = null;
         }
     };
-
-    public void getLocationPoint(){
-
-
-    }
 
 
     @Override
