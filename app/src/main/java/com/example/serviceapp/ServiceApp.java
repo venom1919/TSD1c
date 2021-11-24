@@ -43,6 +43,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -259,7 +260,7 @@ public class ServiceApp extends Service {
     }
 
     ///////Write files date now
-    public void downloadFiles(String name_file, String data, String dateForLocation) {
+    public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
     File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
     Writer wr = null;
@@ -270,16 +271,24 @@ public class ServiceApp extends Service {
 
     String dta = "" ;
     JSONObject json = new JSONObject() ;
+    JSONArray arr = new JSONArray();
 
     try {
+
+        arr.put(latitude) ;
+        arr.put(longitude) ;
         Date nowDate = new Date() ;
-        json.put(dateForLocation,  "latitude " + latitude + " "  + "longitude " + longitude) ;
+        json.put("Work is ",  dateForLocation) ;
+        json.put( "Coordinate ",  arr) ;
+
         dta = json.toString() ;
-    } catch (JSONException e) {
+
+    }catch (JSONException e) {
             e.printStackTrace();
         }
 
     try {
+
         path.mkdirs();
         wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
         wr.write(dta);
