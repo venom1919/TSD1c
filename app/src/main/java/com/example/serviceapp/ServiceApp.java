@@ -82,7 +82,8 @@ public class ServiceApp extends Service {
 
     Thread workThread = null;
     boolean TsdTaburetkaUa = true ;
-
+    double latitude ;
+    double longitude ;
 
     private void getLocation() {
 
@@ -95,15 +96,11 @@ public class ServiceApp extends Service {
         ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
 
-        if (netInfo != null && netInfo.isConnected())
-        {
+        if (netInfo != null && netInfo.isConnected()){
             isNetworkEnabled  = true ;
-        }
-
-        else {
+        }else{
             isNetworkEnabled = false ;
         }
-
 
         Log.i("isGPSEnabled " ,String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled)+ " isPass" + String.valueOf(isPassiveProvider)) ;
 
@@ -116,17 +113,20 @@ public class ServiceApp extends Service {
             public void onLocationChanged(Location location) {
 
                 Log.i("ISKSK", "sss");
-                double latitude = location.getLatitude();
-                double longitude = location.getLongitude();
+//                double latitude = location.getLatitude();
+//                double longitude = location.getLongitude();
+
+                 latitude = location.getLatitude();
+                 longitude = location.getLongitude();
 
                 Log.i("scgfw" ,String.valueOf(latitude) + " " + String.valueOf(longitude)) ;
 
-                JSONObject json = new JSONObject() ;
-                try {
-                    json.put(String.valueOf(new Date()), "Dolg." + latitude + " "  + "Shir." + longitude) ;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+//                JSONObject json = new JSONObject() ;
+//                try {
+//                    json.put(String.valueOf(new Date()), "Dolg." + latitude + " "  + "Shir." + longitude) ;
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
 
                 location.reset();
 
@@ -211,7 +211,7 @@ public class ServiceApp extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        getLocation() ;
+//        getLocation() ;
 
         if (workThread == null) {
             workThread = new Thread(run);
@@ -228,17 +228,17 @@ public class ServiceApp extends Service {
             try {
                 while(true){
 
-                    getLocation() ;
+//                    getLocation() ;
 
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat formatDate = new SimpleDateFormat("HH:mm:ss") ;
 
                     Date d = new Date();
 
-                    String dayOfTheWeek = sdf.format(d) + ".txt";
+                    String dayOfTheWeek = sdf.format(d) + ".json";
                     String timeOfTheDay = formatDate.format(d) + "\n" ;
-
-                    downloadFiles(dayOfTheWeek, timeOfTheDay) ;
+                    String dateForLocation = formatDate.format(d) ;
+                    downloadFiles(dayOfTheWeek, timeOfTheDay ,dateForLocation) ;
 
                     Log.i("TIME_LOG", timeOfTheDay);
                     Thread.sleep(20000);
@@ -252,27 +252,39 @@ public class ServiceApp extends Service {
         }
     };
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d("On_Destroy_Tsd", String.valueOf(new Date())) ;
     }
 
-
     ///////Write files date now
-    public void downloadFiles(String name_file, String data) {
+    public void downloadFiles(String name_file, String data, String dateForLocation) {
 
     File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
     Writer wr = null;
     //FileOutputStream fos = null;
     boolean isHaveInstanceProccesTSD = false ;
 
+    getLocation() ;
+
+    String dta = "" ;
+    JSONObject json = new JSONObject() ;
+
+    try {
+        Date nowDate = new Date() ;
+        json.put(dateForLocation,  "latitude " + latitude + " "  + "longitude " + longitude) ;
+        dta = json.toString() ;
+    } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
     try {
         path.mkdirs();
         wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
-        wr.write(data);
-        wr.close();
+        wr.write(dta);
+        wr.flush();
+//        wr.close();
 
     } catch (FileNotFoundException e) {
         e.printStackTrace();

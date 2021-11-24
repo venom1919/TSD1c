@@ -19,9 +19,7 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_GPS"/>
-
-
+    <uses-permission android:name="android.permission.ACCESS_GPS" />
 
     <application
         android:allowBackup="true"
@@ -32,12 +30,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ServiceApp">
+        <receiver
+            android:name=".LocationChangedReceiver"
+            android:enabled="true"
+            android:exported="true"></receiver>
 
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />-->
+                <action android:name="android.intent.action.MAIN" />
+                -->
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity> <!-- <service -->
@@ -59,10 +62,10 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-
         <receiver
             android:name=".AutoRunApp"
             android:exported="true">
@@ -71,7 +74,6 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
-
     </application>
 
 </manifest>
