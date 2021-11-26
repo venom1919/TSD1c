@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.JsonWriter;
 import android.util.Log;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -46,6 +47,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -63,46 +65,44 @@ public class ServiceApp extends Service {
     private final static String FILE_NAME = "content.txt";
 
     Thread workThread = null;
-    boolean tsdTaburetkaUa = true ;
-    static double latitude ;
-    static double longitude ;
-    boolean locationisOn = true ;
+    boolean tsdTaburetkaUa = true;
+    double latitude;
+    double longitude;
+    boolean locationisOn = true;
+
+
 
     private void getLocation() {
 
         LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
-
         boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         boolean isPassiveProvider = locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
-
-        ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
 
-        if (netInfo != null && netInfo.isConnected()){
-            isNetworkEnabled  = true ;
-        }else{
-            isNetworkEnabled = false ;
+        if (netInfo != null && netInfo.isConnected()) {
+            isNetworkEnabled = true;
+        } else {
+            isNetworkEnabled = false;
         }
 
-        Log.i("isGPSEnabled " ,String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled)+ " isPass" + String.valueOf(isPassiveProvider)) ;
+        Log.i("isGPSEnabled ", String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled) + " isPass" + String.valueOf(isPassiveProvider));
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
 
         LocationListener locationListener = new LocationListener() {
 
+
             public void onLocationChanged(Location location) {
 
-
+                Log.i("sssss232", String.valueOf(longitude));
 //                double latitude = location.getLatitude();
 //                double longitude = location.getLongitude();
 
-                 latitude = location.getLatitude();
-                 longitude = location.getLongitude();
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
 
-                Log.i("scgfw" ,String.valueOf(latitude) + " " + String.valueOf(longitude)) ;
+                Log.i("scgfw", String.valueOf(latitude) + " " + String.valueOf(longitude));
 
 //                JSONObject json = new JSONObject() ;
 //                try {
@@ -128,18 +128,20 @@ public class ServiceApp extends Service {
 //            }
         };
 
-        String theBestProvider = "";
         String provider_inet = "";
         boolean haveBestProvider = false;
         Criteria criteria = new Criteria();
-        android.location.Location loc ;
+        android.location.Location loc;
 
 
         try {
 
-            if (isNetworkEnabled){
+            if (isNetworkEnabled) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                Log.i("IsNewtw", "net") ;
+                Log.i("Lintutude" , String.valueOf(latitude)) ;
 //            }else if (isPassiveProvider){
 //                locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
 //                Location loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER) ;
@@ -152,25 +154,8 @@ public class ServiceApp extends Service {
 
             }
 
-//
-//            List<String> providers = locationManager.getAllProviders();
-//            for (String str : providers) {
-//                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//                    return;
-//                }
-//                android.location.Location loc_3 = locationManager.getLastKnownLocation(str);
-//
-//                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//                    return;
-//                }
-//                Log.i("prov_12,", String.valueOf(loc_3.getLatitude() + " " +  loc_3.getLongitude()) + " " + str) ;
-//            }
-
-            theBestProvider = locationManager.getBestProvider(criteria, false);
-
         } catch (NullPointerException ex) {
 
-            Log.i("SSSSSSSSSSSSS", ex.getMessage());
             ex.printStackTrace();
         }
 
@@ -211,7 +196,9 @@ public class ServiceApp extends Service {
             try {
                 while(true){
 
-//                    getLocat  ion() ;
+                   /*
+                   * getLocation() ;
+                   * */
 
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat formatDate = new SimpleDateFormat("HH:mm:ss") ;
@@ -240,23 +227,26 @@ public class ServiceApp extends Service {
     }
 
     ///////Write files date now
-    public static void downloadFiles(String name_file, String data, String dateForLocation)  {
+    public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
         File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
-        String name_pathToFile = "test.json";
+        String name_pathToFile = "test13.json";
 
-
+        getLocation() ;
+//
         List<LogsTerminal> detailsList = new ArrayList<>();
-        detailsList.add(new LogsTerminal(new Date().toString() ,"yes", String.valueOf(longitude), String.valueOf(latitude)));
+        detailsList.add(new LogsTerminal(dateForLocation, String.valueOf(locationisOn), String.valueOf(longitude), String.valueOf(latitude)));
 
         writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
 
 
-        try (FileReader fileReader = new FileReader((name_pathToFile))){
 
-            JsonObject jsonObject = (JsonObject) JsonParser.parseReader(fileReader) ;
 
-            ObjectMapper objectMapper = new ObjectMapper();
+//        try (FileReader fileReader = new FileReader((name_pathToFile))){
+//
+//            JsonObject jsonObject = (JsonObject) JsonParser.parseReader(fileReader) ;
+//
+//            ObjectMapper objectMapper = new ObjectMapper();
 
 
 //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -264,59 +254,59 @@ public class ServiceApp extends Service {
 //            }
 
 
-            JsonArray array = jsonObject.getAsJsonArray("Coordinates");
-
-            String name = String.valueOf(jsonObject.get("date"));
-            Log.i("sssss" ,name) ;
-
-            List<String> str = new ArrayList<>();
-
-
-            JsonObject newJspn = new JsonObject();
-            JsonArray arrName  = new JsonArray() ;
-            JsonArray aarValue = new JsonArray() ;
-            arrName.add("logitude");
-            arrName.add("lutude");
-
-            newJspn.add("Coordinates" ,arrName);
-            JSONObject js = new JSONObject() ;
-            JSONArray mass = new JSONArray();
-            mass.put(js);
-            JSONObject object= new JSONObject();
-            object.put("Coordinates" ,object) ;
-
-            List<Map<String ,String>> coordiantes =new ArrayList<>();
-            HashMap<String , String> addCordinates = new HashMap<>() ;
-
-            for (Object obj : array){
-
-                JsonObject jsonObject1 = (JsonObject) obj;
-                String logitude = String.valueOf(jsonObject1.get("logitude"));
-                String lutude = String.valueOf(jsonObject1.get("lutude"));
-
-                addCordinates.put(logitude ,lutude) ;
-                coordiantes.add(addCordinates) ;
-
-            }
-
-
-            for (Map<String, String> map : coordiantes ){
-
-                for (Map.Entry<String, String> entry : map.entrySet()) {
-
-                    js.put("logitude" ,entry.getKey());
-                    js.put("logitude" ,entry.getValue());
-
-                    Log.i("valuets" , entry.getValue());
-                    Log.i("Keuy" , entry.getKey());
+//            JsonArray array = jsonObject.getAsJsonArray("Coordinates");
+//
+//            String name = String.valueOf(jsonObject.get("date"));
+//            Log.i("sssss" ,name) ;
+//
+//            List<String> str = new ArrayList<>();
+//
+//
+//            JsonObject newJspn = new JsonObject();
+//            JsonArray arrName  = new JsonArray() ;
+//            JsonArray aarValue = new JsonArray() ;
+//            arrName.add("logitude");
+//            arrName.add("lutude");
+//
+//            newJspn.add("Coordinates" ,arrName);
+//            JSONObject js = new JSONObject() ;
+//            JSONArray mass = new JSONArray();
+//            mass.put(js);
+//            JSONObject object= new JSONObject();
+//            object.put("Coordinates" ,object) ;
+//
+//            List<Map<String ,String>> coordiantes =new ArrayList<>();
+//            HashMap<String , String> addCordinates = new HashMap<>() ;
+//
+//            for (Object obj : array){
+//
+//                JsonObject jsonObject1 = (JsonObject) obj;
+//                String logitude = String.valueOf(jsonObject1.get("logitude"));
+//                String lutude = String.valueOf(jsonObject1.get("lutude"));
+//
+//                addCordinates.put(logitude ,lutude) ;
+//                coordiantes.add(addCordinates) ;
+//
+//            }
 
 
-                }
-            }
-
-
-            js.put("logitude" ,longitude) ;
-            js.put("logitude" ,latitude) ;
+//            for (Map<String, String> map : coordiantes ){
+//
+//                for (Map.Entry<String, String> entry : map.entrySet()) {
+//
+//                    js.put("logitude" ,entry.getKey());
+//                    js.put("logitude" ,entry.getValue());
+//
+//                    Log.i("valuets" , entry.getValue());
+//                    Log.i("Keuy" , entry.getKey());
+//
+//
+//                }
+//            }
+//
+//
+//            js.put("logitude" ,longitude) ;
+//            js.put("logitude" ,latitude) ;
 
 
 
@@ -328,15 +318,15 @@ public class ServiceApp extends Service {
 //            Writer wr = new OutputStreamWriter(new FileOutputStream(new File(name_pathToFile),false));
 //            wr.flush();
 //            wr.write(String.valueOf(jsonObject));
-
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
+//
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//        }
 
 //        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
 //    Writer wr = null;
 //    //FileOutputStream fos = null;
-//    boolean isHaveInstanceProccesTSD = false ;
+     boolean isHaveInstanceProccesTSD = false ;
 //
 //    getLocation() ;
 //
@@ -347,7 +337,6 @@ public class ServiceApp extends Service {
 //    Gson gson = new GsonBuilder().setPrettyPrinting().create();
 //    JsonWriter js  ;
 
-    BufferedWriter bufferedWriter = null ;
 
 //    try {
 //
@@ -545,50 +534,50 @@ public class ServiceApp extends Service {
 //        e.printStackTrace();
 //    }
 //
-//        try{
-//
-//        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
-//
-//        /////TSD
-//        Process p = Runtime.getRuntime().exec("ps");
-//        p.waitFor();
-//        StringBuffer sb = new StringBuffer();
-//        InputStreamReader isr = new InputStreamReader(p.getInputStream());
-//        int ch;
-//        char[] buf = new char[1024];
-//        while ((ch = isr.read(buf)) != -1) {
-//            sb.append(buf, 0, ch);
-//        }
-//
-//        String[] processLinesAr = sb.toString().split("\n");
-//
-//        for(String line : processLinesAr) {
-//
-//            String[] comps = line.split("[\\s]+");
-//
-//            if (comps.length != 9) {
-//                String packageName = comps[5] ;
-//            }else {
-//
-//                int pid = Integer.parseInt(comps[1]);
-//                String packageName = comps[8] ;
-//                if (packageName.equals(tsdTaburetka)){
-//                   isHaveInstanceProccesTSD =true ;
-//                }
-////                pMap.put(packageName, pid);
-//            }
-//        }
-//
-//    } catch (InterruptedException e) {
-//        e.printStackTrace();
-//    } catch (IOException e) {
-//        e.printStackTrace();
-//    }
-//        if(!isHaveInstanceProccesTSD){
-//            PackageManager pac = getPackageManager() ;
-//            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
-//            startActivity(launchIntent);
-//        }
+        try{
+
+        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
+
+        /////TSD
+        Process p = Runtime.getRuntime().exec("ps");
+        p.waitFor();
+        StringBuffer sb = new StringBuffer();
+        InputStreamReader isr = new InputStreamReader(p.getInputStream());
+        int ch;
+        char[] buf = new char[1024];
+        while ((ch = isr.read(buf)) != -1) {
+            sb.append(buf, 0, ch);
+        }
+
+        String[] processLinesAr = sb.toString().split("\n");
+
+        for(String line : processLinesAr) {
+
+            String[] comps = line.split("[\\s]+");
+
+            if (comps.length != 9) {
+                String packageName = comps[5] ;
+            }else {
+
+                int pid = Integer.parseInt(comps[1]);
+                String packageName = comps[8] ;
+                if (packageName.equals(tsdTaburetka)){
+                   isHaveInstanceProccesTSD =true ;
+                }
+//                pMap.put(packageName, pid);
+            }
+        }
+
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+        if(!isHaveInstanceProccesTSD){
+            PackageManager pac = getPackageManager() ;
+            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+            startActivity(launchIntent);
+        }
 
 }
 
@@ -601,11 +590,9 @@ public class ServiceApp extends Service {
     public static void writeCourseList(List<LogsTerminal> detailsList, String path, String fileName) {
         Details details = null;
 
-        Log.i("s123", path + File.separator + fileName) ;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             byte[] jsonData = new byte[0];
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Log.i("1mn" ,"y") ;
 
             File f = new File(path + File.separator + fileName);
@@ -613,19 +600,15 @@ public class ServiceApp extends Service {
             FileInputStream is = new FileInputStream(path + File.separator + fileName);
             is.read(buffer);
             is.close();
-
-
-                jsonData = buffer ;
-//                jsonData = Files.readAllBytes(Paths.get(path + File.separator + fileName));
-                Log.i("sss213" ,"y") ;
-//            }
+            jsonData = buffer ;
             details = objectMapper.readValue(jsonData, Details.class);
 
             List<LogsTerminal> existingCourseList = details.getDetailsList();
             if(null != existingCourseList && existingCourseList.size() > 0) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    detailsList.forEach(newCourse -> existingCourseList.add(newCourse));
-                }
+                    Log.i("msd23" ,"sss") ;
+                    for (Object l : detailsList){
+                      existingCourseList.add((LogsTerminal) l) ;
+                    }
                 details.setDetailsList(existingCourseList);
             } else {
                 details.setDetailsList(detailsList);
@@ -636,17 +619,12 @@ public class ServiceApp extends Service {
         }
     }
 
-
-
 }
-
-
-
 
 
 class Details {
 
-    @JsonProperty("details")
+    @JsonProperty("logs")
     private List<LogsTerminal> detailsList = new ArrayList<>();
 
     public List<LogsTerminal> getDetailsList() {
@@ -660,7 +638,7 @@ class Details {
 
 class LogsTerminal{
 
-    @JsonProperty("details")
+    @JsonProperty("logs")
     private String date;
 
     @JsonProperty("logitude")
