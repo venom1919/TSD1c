@@ -1,47 +1,38 @@
 package com.example.serviceapp;
 
 import android.Manifest;
-import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.AppOpsManager;
 import android.app.Service;
-import android.app.TaskInfo;
-import android.app.usage.UsageStats;
-import android.app.usage.UsageStatsManager;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.TrafficStats;
-import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.Trace;
-import android.provider.Settings;
-import android.telephony.DataFailCause;
+import android.provider.MediaStore;
+import android.util.JsonWriter;
 import android.util.Log;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.annotation.RequiresPermission;
 import androidx.core.app.ActivityCompat;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -50,30 +41,20 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.FilterInputStream;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+
 
 import static android.app.PendingIntent.getActivity;
 
@@ -82,9 +63,10 @@ public class ServiceApp extends Service {
     private final static String FILE_NAME = "content.txt";
 
     Thread workThread = null;
-    boolean TsdTaburetkaUa = true ;
-    double latitude ;
-    double longitude ;
+    boolean tsdTaburetkaUa = true ;
+    static double latitude ;
+    static double longitude ;
+    boolean locationisOn = true ;
 
     private void getLocation() {
 
@@ -113,7 +95,7 @@ public class ServiceApp extends Service {
 
             public void onLocationChanged(Location location) {
 
-                Log.i("ISKSK", "sss");
+
 //                double latitude = location.getLatitude();
 //                double longitude = location.getLongitude();
 
@@ -229,7 +211,7 @@ public class ServiceApp extends Service {
             try {
                 while(true){
 
-//                    getLocation() ;
+//                    getLocat  ion() ;
 
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat formatDate = new SimpleDateFormat("HH:mm:ss") ;
@@ -248,7 +230,6 @@ public class ServiceApp extends Service {
             }catch (InterruptedException iex) {
                 iex.printStackTrace();
             }
-
             workThread = null;
         }
     };
@@ -256,159 +237,360 @@ public class ServiceApp extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d("On_Destroy_Tsd", String.valueOf(new Date())) ;
     }
 
     ///////Write files date now
-    public void downloadFiles(String name_file, String data, String dateForLocation)  {
+    public static void downloadFiles(String name_file, String data, String dateForLocation)  {
 
-    File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
-    Writer wr = null;
-    //FileOutputStream fos = null;
-    boolean isHaveInstanceProccesTSD = false ;
+        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
+        String name_pathToFile = "test.json";
 
-    getLocation() ;
 
-    String dta = "" ;
-    JSONObject json = new JSONObject() ;
-    JSONArray arr = new JSONArray();
+        List<LogsTerminal> detailsList = new ArrayList<>();
+        detailsList.add(new LogsTerminal(new Date().toString() ,"yes", String.valueOf(longitude), String.valueOf(latitude)));
 
-    try {
+        writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
 
-        arr.put(latitude) ;
-        arr.put(longitude) ;
-        Date nowDate = new Date() ;
-        json.put("Work is ",  dateForLocation) ;
-        json.put( "Coordinate ",  arr) ;
 
-        dta = json.toString() ;
+        try (FileReader fileReader = new FileReader((name_pathToFile))){
 
-    }catch (JSONException e) {
+            JsonObject jsonObject = (JsonObject) JsonParser.parseReader(fileReader) ;
+
+            ObjectMapper objectMapper = new ObjectMapper();
+
+
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                byte[] jsonData = Files.readAllBytes(Paths.get(path + File.separator + name_pathToFile));
+//            }
+
+
+            JsonArray array = jsonObject.getAsJsonArray("Coordinates");
+
+            String name = String.valueOf(jsonObject.get("date"));
+            Log.i("sssss" ,name) ;
+
+            List<String> str = new ArrayList<>();
+
+
+            JsonObject newJspn = new JsonObject();
+            JsonArray arrName  = new JsonArray() ;
+            JsonArray aarValue = new JsonArray() ;
+            arrName.add("logitude");
+            arrName.add("lutude");
+
+            newJspn.add("Coordinates" ,arrName);
+            JSONObject js = new JSONObject() ;
+            JSONArray mass = new JSONArray();
+            mass.put(js);
+            JSONObject object= new JSONObject();
+            object.put("Coordinates" ,object) ;
+
+            List<Map<String ,String>> coordiantes =new ArrayList<>();
+            HashMap<String , String> addCordinates = new HashMap<>() ;
+
+            for (Object obj : array){
+
+                JsonObject jsonObject1 = (JsonObject) obj;
+                String logitude = String.valueOf(jsonObject1.get("logitude"));
+                String lutude = String.valueOf(jsonObject1.get("lutude"));
+
+                addCordinates.put(logitude ,lutude) ;
+                coordiantes.add(addCordinates) ;
+
+            }
+
+
+            for (Map<String, String> map : coordiantes ){
+
+                for (Map.Entry<String, String> entry : map.entrySet()) {
+
+                    js.put("logitude" ,entry.getKey());
+                    js.put("logitude" ,entry.getValue());
+
+                    Log.i("valuets" , entry.getValue());
+                    Log.i("Keuy" , entry.getKey());
+
+
+                }
+            }
+
+
+            js.put("logitude" ,longitude) ;
+            js.put("logitude" ,latitude) ;
+
+
+
+//            FileWriter fr = new FileWriter(name_pathToFile) ;
+//            fr.write(newJspn.toString());
+//            fr.flush();
+
+
+//            Writer wr = new OutputStreamWriter(new FileOutputStream(new File(name_pathToFile),false));
+//            wr.flush();
+//            wr.write(String.valueOf(jsonObject));
+
+        }catch (Exception e) {
             e.printStackTrace();
         }
 
-    try {
+//        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
+//    Writer wr = null;
+//    //FileOutputStream fos = null;
+//    boolean isHaveInstanceProccesTSD = false ;
+//
+//    getLocation() ;
+//
+//    String path_file = path +"/"+ name_file ;
+//    String dta = "" ;
+//    JSONObject json = new JSONObject() ;
+//    JSONArray arr = new JSONArray();
+//    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//    JsonWriter js  ;
 
-        path.mkdirs();
-        wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),true));
-        wr.write(dta);
-        wr.flush();
-//        wr.close();
+    BufferedWriter bufferedWriter = null ;
 
-    } catch (FileNotFoundException e) {
-        e.printStackTrace();
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-
-    try{
-        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
-
-        /////TSD
-        Process p = Runtime.getRuntime().exec("ps");
-        p.waitFor();
-        StringBuffer sb = new StringBuffer();
-        InputStreamReader isr = new InputStreamReader(p.getInputStream());
-        int ch;
-        char[] buf = new char[1024];
-        while ((ch = isr.read(buf)) != -1) {
-            sb.append(buf, 0, ch);
-        }
-
-//        HashMap pMap = new HashMap<String, Integer>();
-        String[] processLinesAr = sb.toString().split("\n");
-
-        for(String line : processLinesAr) {
-
-            String[] comps = line.split("[\\s]+");
-
-            if (comps.length != 9) {
-                String packageName = comps[5] ;
-            }else {
-
-                int pid = Integer.parseInt(comps[1]);
-                String packageName = comps[8] ;
-                if (packageName.equals(tsdTaburetka)){
-                   isHaveInstanceProccesTSD =true ;
-                }
-//                pMap.put(packageName, pid);
-            }
-        }
-
-    } catch (InterruptedException e) {
-        e.printStackTrace();
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-        if(!isHaveInstanceProccesTSD){
-            PackageManager pac = getPackageManager() ;
-            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
-            startActivity(launchIntent);
-        }
-
-}
-//    public void writeFile(String reporteDate, String fileName){
+//    try {
 //
-//        FileOutputStream fos = null;
+////        arr.put(latitude) ;
+////        arr.put(longitude) ;
+////        json.put("Work is ",  dateForLocation) ;
+////        json.put( "Coordinate ",  arr) ;
+////        json.put("Location_ON" ,locationisOn) ;
+////
+////        dta = json.toString() ;
 //
-//        try {
 //
-//            fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
-//            fos.write(reporteDate.getBytes());
-//
-//        } catch (IOException ex) {
-//
-//            Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
-//
-//        } finally {
-//
-//            try {
-//                if (fos != null)
-//                    fos.close();
-//            } catch (IOException ex) {
-//                Toast.makeText(this, ex.getMessage(), Toast.LENGTH_SHORT).show();
-//            }
-//        }
-//    }
-
-//    public void DownloadFile(String fileURL, String fileName) {
-//
-//        try {
-//
-//            File root = Environment.getExternalStorageDirectory();
-//
-//            URL u = new URL(fileURL);
-//            HttpURLConnection c = (HttpURLConnection) u.openConnection();
-//            c.setRequestMethod("GET");
-//            c.setDoOutput(true);
-//            c.connect();
-//
-//            FileOutputStream f = new FileOutputStream(new File(root, fileName));
-//
-//            InputStream in = c.getInputStream();
-//
-//            byte[] buffer = new byte[1024];
-//            int len1 = 0;
-//            while ((len1 = in.read(buffer)) > 0) {
-//                f.write(buffer, 0, len1);
-//            }
-//
-//            f.close();
-//
-//        } catch (Exception e) {
-//            Log.d("Downloader", e.getMessage());
-//        }
-//    }
-
-//    public static void writetoFile(String file, String text) {
-//        try {
-//            FileWriter fw = new FileWriter(file);
-//            fw.write(String.valueOf(text));
-//            fw.close();
-//        } catch (IOException e) {
+//    }catch (JSONException e) {
 //            e.printStackTrace();
 //        }
+//
+//    try {
+//
+////        name_file = new Date().toString() ;
+//        path.mkdirs();
+//        wr = new OutputStreamWriter(new FileOutputStream(new File(path, name_file),false));
+//
+//
+////        Object obj = jsonParser.parse(reader);
+////        JSONArray employeeList = (JSONArray) obj;
+////        Log.i("xzcxcz" , String.valueOf(employeeList));
+//
+////        JSONArray employeeList1 = new JSONArray();
+////
+////        employeeList1.put(longitude) ;
+////        employeeList1.put(latitude) ;
+////
+//
+////
+//        DataForJSON dataForJSON = new DataForJSON(new Date().toString(), "as" ,String.valueOf(latitude), String.valueOf(longitude)) ;
+////
+//              Gson gson1 = new Gson() ;
+//            String locle = gson1.toJson(dataForJSON);
+//        Log.i("ssss1123" ,locle) ;
+////
+//        JsonElement obj = JsonParser.parseReader(new FileReader(path +"/"+ name_file));
+//
+//        JsonObject jsonObject = (JsonObject) obj;
+//
+//        JsonArray msg = (JsonArray) jsonObject.get("shit");
+//
+//        System.out.println(jsonObject);
+//        List<String> linststring  = new ArrayList<String>();
+//
+//
+//        Iterator<JsonElement> iterator = msg.iterator();
+//
+//        while (iterator.hasNext()) {
+//            String Vinno_Read = iterator.next().toString();
+//            System.out.println("Vinno_Read---->" + Vinno_Read);
+//        }
+
+//
+//        String name_path = path +"/"+ name_file ;
+//        JsonElement obj = JsonParser.parseReader(new FileReader(name_path));
+//        JsonArray jsonItemInfo = obj.getAsJsonArray();
+//
+//        JSONObject employeeDetails = new JSONObject();
+//        JSONObject employeeObject = new JSONObject();
+//        JSONArray employeeList = new JSONArray();
+//        FileWriter file = new FileWriter(path +"/"+ name_file);
+//
+//
+//        Log.i("path_file" ,path +"/"+ name_file) ;
+//        employeeList.put(locle);
+//
+//        employeeDetails.put("shit", "xzcxczxczxcz") ;
+//
+//        file.write(employeeDetails.toString());
+//        file.flush();
+//        file.close();
+//        FileWriter fileWriter = new FileWriter(String.valueOf(employeeDetails)) ;
+//        fileWriter.flush();
+//
+//        File jsonFile = new File(path +"/"+ name_file);
+//        Gson gson12 = new GsonBuilder()
+//                .setPrettyPrinting()
+//                .create();
+//
+//        Gson gson_new = new GsonBuilder().setPrettyPrinting().create();
+//        Type type = new TypeToken<Map<String, Map.Entry>>() {}.getType();
+//        Reader reader_new = new FileReader(name_path);
+////        Map<String, Map.Entry> diary = gson_new.fromJson(reader_new, type);
+//
+//        JsonArray au = new JsonArray() ;
+//        JsonObject jsOm = new JsonObject() ;
+//
+//        try (FileReader reader = new FileReader(jsonFile)) {
+//            JsonObject root = gson12.fromJson(reader, JsonObject.class);
+//
+////            Log.i("sdsd", root.toString()) ;
+//            Map<String, JsonElement> valuesToAdd = new LinkedHashMap<>();
+//
+//            // create fields iterator
+//            Iterator<Map.Entry<String, JsonElement>> fieldsIterator = root.entrySet().iterator();
+//            while (fieldsIterator.hasNext()) {
+//
+//                Map.Entry<String, JsonElement> entry = fieldsIterator.next();
+//                // if entry represents array
+//
+//                if (entry.getValue().isJsonArray()) {
+//                    // create wrapper object
+//                    JsonObject arrayWrapper = new JsonObject();
+//
+//                    arrayWrapper.add(entry.getKey(), root.get(entry.getKey()));
+//                    arrayWrapper.add("sad", root.get(entry.getKey()));
+//
+//
+//                    valuesToAdd.put(entry.getKey(), arrayWrapper);
+//
+//                    // remove it from object.
+//                    fieldsIterator.remove();
+//                }
+//            }
+//
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//                valuesToAdd.forEach((k, v) -> root.add(k + "List", v));
+//            }
+//
+//            System.out.println(gson.toJson("asdasdas" + root));
+//        }
+//
+//
+//
+//
+//
+//
+//        //wr.write(employeeDetails.toString());
+//        wr.flush();
+//        wr.close();
+
+//        RandomAccessFile randomAccessFile = new RandomAccessFile(path +"/"+ name_file, "rw");
+//
+//        long pos = randomAccessFile.length();
+//        while (randomAccessFile.length() > 0) {
+//            Log.i("asdasdas", "sdss");
+//            pos--;
+//            randomAccessFile.seek(pos);
+//            if (randomAccessFile.readByte() == ']') {
+//
+//                randomAccessFile.seek(pos);
+//                break;
+//            }
+//        }
+
+//        String jsonElement = "{sds}";
+//        randomAccessFile.writeBytes("," + jsonElement + "]");
+//
+//        randomAccessFile.close();
+
+
+
+//        Map<String, String> mapa = new HashMap<>() ;
+//        mapa.put("Time" ,new Date().toString());
+//        mapa.put("Coordinate" ,String.valueOf(latitude));
+//        mapa.put("Location_On" ,"Yes");
+//
+//
+//
+//        ArrayList<Double> coordinates = new ArrayList<>() ;
+//        coordinates.add((double) latitude) ;
+//        coordinates.add((double) longitude) ;
+//
+//        JSONObject logs = new JSONObject();
+//
+//
+//        logs.put("Time", new Date());
+//        logs.put("Coordinate", coordinates);
+//        logs.put("Location_On" ,true) ;
+//
+//        JSONObject valuesObject = new JSONObject();
+//        valuesObject.put("hun", logs) ;
+//
+//
+//        JsonArray array = new JsonArray();
+//        array.add(String.valueOf(logs));
+//
+//        FileWriter file = new FileWriter(path +"/"+ name_file);
+//
+//        file.write(logs.toString());
+//        file.flush();
+//        file.close();
+
+
+//    } catch (FileNotFoundException e) {
+//        e.printStackTrace();
+//    } catch (IOException e) {
+//        e.printStackTrace();
+//    } catch (JSONException e) {
+//        e.printStackTrace();
 //    }
+//
+//        try{
+//
+//        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
+//
+//        /////TSD
+//        Process p = Runtime.getRuntime().exec("ps");
+//        p.waitFor();
+//        StringBuffer sb = new StringBuffer();
+//        InputStreamReader isr = new InputStreamReader(p.getInputStream());
+//        int ch;
+//        char[] buf = new char[1024];
+//        while ((ch = isr.read(buf)) != -1) {
+//            sb.append(buf, 0, ch);
+//        }
+//
+//        String[] processLinesAr = sb.toString().split("\n");
+//
+//        for(String line : processLinesAr) {
+//
+//            String[] comps = line.split("[\\s]+");
+//
+//            if (comps.length != 9) {
+//                String packageName = comps[5] ;
+//            }else {
+//
+//                int pid = Integer.parseInt(comps[1]);
+//                String packageName = comps[8] ;
+//                if (packageName.equals(tsdTaburetka)){
+//                   isHaveInstanceProccesTSD =true ;
+//                }
+////                pMap.put(packageName, pid);
+//            }
+//        }
+//
+//    } catch (InterruptedException e) {
+//        e.printStackTrace();
+//    } catch (IOException e) {
+//        e.printStackTrace();
+//    }
+//        if(!isHaveInstanceProccesTSD){
+//            PackageManager pac = getPackageManager() ;
+//            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+//            startActivity(launchIntent);
+//        }
+
+}
 
     @Nullable
     @Override
@@ -416,4 +598,121 @@ public class ServiceApp extends Service {
         return null;
     }
 
+    public static void writeCourseList(List<LogsTerminal> detailsList, String path, String fileName) {
+        Details details = null;
+
+        Log.i("s123", path + File.separator + fileName) ;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            byte[] jsonData = new byte[0];
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.i("1mn" ,"y") ;
+
+            File f = new File(path + File.separator + fileName);
+            byte[] buffer = new byte[(int)f.length()];
+            FileInputStream is = new FileInputStream(path + File.separator + fileName);
+            is.read(buffer);
+            is.close();
+
+
+                jsonData = buffer ;
+//                jsonData = Files.readAllBytes(Paths.get(path + File.separator + fileName));
+                Log.i("sss213" ,"y") ;
+//            }
+            details = objectMapper.readValue(jsonData, Details.class);
+
+            List<LogsTerminal> existingCourseList = details.getDetailsList();
+            if(null != existingCourseList && existingCourseList.size() > 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    detailsList.forEach(newCourse -> existingCourseList.add(newCourse));
+                }
+                details.setDetailsList(existingCourseList);
+            } else {
+                details.setDetailsList(detailsList);
+            }
+            objectMapper.writeValue(new File(path + File.separator + fileName), details);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+}
+
+
+
+
+
+class Details {
+
+    @JsonProperty("details")
+    private List<LogsTerminal> detailsList = new ArrayList<>();
+
+    public List<LogsTerminal> getDetailsList() {
+        return detailsList;
+    }
+
+    public void setDetailsList(List<LogsTerminal> detailsList) {
+        this.detailsList = detailsList;
+    }
+}
+
+class LogsTerminal{
+
+    @JsonProperty("details")
+    private String date;
+
+    @JsonProperty("logitude")
+    private String logitude;
+
+    @JsonProperty("powerOn")
+    private String powerOn;
+
+    @JsonProperty("lutude")
+    private String lutude;
+
+
+
+    public LogsTerminal() {
+    }
+
+    public LogsTerminal(String date, String powerOn, String logitude, String lutude) {
+        this.date = date;
+        this.powerOn = powerOn;
+        this.logitude = logitude ;
+        this.lutude = lutude  ;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public String getLogitude() {
+        return logitude;
+    }
+
+    public void setLogitude(String logitude) {
+        this.logitude = logitude;
+    }
+
+    public String getPowerOn() {
+        return powerOn;
+    }
+
+    public void setPowerOn(String powerOn) {
+        this.powerOn = powerOn;
+    }
+
+    public String getLutude() {
+        return lutude;
+    }
+
+    public void setLutude(String lutude) {
+        this.lutude = lutude;
+    }
 }
