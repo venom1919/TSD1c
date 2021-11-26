@@ -46,6 +46,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -196,10 +197,6 @@ public class ServiceApp extends Service {
             try {
                 while(true){
 
-                   /*
-                   * getLocation() ;
-                   * */
-
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     SimpleDateFormat formatDate = new SimpleDateFormat("HH:mm:ss") ;
 
@@ -210,8 +207,10 @@ public class ServiceApp extends Service {
                     String dateForLocation = formatDate.format(d) ;
                     downloadFiles(dayOfTheWeek, timeOfTheDay ,dateForLocation) ;
 
+                    System.out.println("sdssdsdsdsxzcxz");
                     Log.i("TIME_LOG", timeOfTheDay);
                     Thread.sleep(20000);
+
                 }
 
             }catch (InterruptedException iex) {
@@ -229,15 +228,59 @@ public class ServiceApp extends Service {
     ///////Write files date now
     public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
+        System.out.println("ya tut_12");
         File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
-        String name_pathToFile = "test13.json";
+        String name_pathToFile = path + "/" + name_file;
+
+        System.out.println(name_pathToFile);
 
         getLocation() ;
-//
-        List<LogsTerminal> detailsList = new ArrayList<>();
-        detailsList.add(new LogsTerminal(dateForLocation, String.valueOf(locationisOn), String.valueOf(longitude), String.valueOf(latitude)));
+        File f = new File(name_pathToFile);
 
-        writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
+        if(f.exists() && !f.isDirectory()) {
+
+            System.out.println("ya tut_0");
+            List<LogsTerminal> detailsList = new ArrayList<>();
+            detailsList.add(new LogsTerminal(dateForLocation, String.valueOf(locationisOn), String.valueOf(latitude + " " + longitude)));
+            writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
+
+        }else {
+
+            if (longitude == 0.0 || latitude ==0 ){
+                return;
+            }
+
+            try (FileWriter fr = new FileWriter(name_pathToFile)){
+
+                System.out.println("ya tut_13");
+                JsonObject jsonObject = new JsonObject();
+                JsonArray jsonArray  = new JsonArray() ;
+                JsonObject jsonObject1 = new JsonObject() ;
+
+
+                jsonObject1.addProperty("logs" ,dateForLocation);
+                jsonObject1.addProperty("powerOn" ,String.valueOf(locationisOn) );
+                jsonObject1.addProperty("coordinates" ,String.valueOf(latitude + " " + longitude));
+//                jsonObject1.addProperty("longitude" ,String.valueOf(longitude));
+
+                jsonArray.add(jsonObject1);
+                jsonObject.add("logs" ,jsonArray);
+                fr.write(jsonObject.toString());
+                fr.flush();
+                fr.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+
+
+//        List<LogsTerminal> detailsList = new ArrayList<>();
+//        detailsList.add(new LogsTerminal(dateForLocation, String.valueOf(locationisOn), String.valueOf(longitude), String.valueOf(latitude)));
+//
+//        writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
 
 
 
@@ -595,9 +638,9 @@ public class ServiceApp extends Service {
             byte[] jsonData = new byte[0];
                 Log.i("1mn" ,"y") ;
 
-            File f = new File(path + File.separator + fileName);
+            File f = new File(fileName);
             byte[] buffer = new byte[(int)f.length()];
-            FileInputStream is = new FileInputStream(path + File.separator + fileName);
+            FileInputStream is = new FileInputStream(fileName);
             is.read(buffer);
             is.close();
             jsonData = buffer ;
@@ -613,7 +656,7 @@ public class ServiceApp extends Service {
             } else {
                 details.setDetailsList(detailsList);
             }
-            objectMapper.writeValue(new File(path + File.separator + fileName), details);
+            objectMapper.writeValue(new File(fileName), details);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -641,25 +684,24 @@ class LogsTerminal{
     @JsonProperty("logs")
     private String date;
 
-    @JsonProperty("logitude")
-    private String logitude;
+    @JsonProperty("coordinates")
+    private String coordinates;
+
+//    @JsonProperty("longitude")
+//    private String longitude;
 
     @JsonProperty("powerOn")
     private String powerOn;
-
-    @JsonProperty("lutude")
-    private String lutude;
 
 
 
     public LogsTerminal() {
     }
 
-    public LogsTerminal(String date, String powerOn, String logitude, String lutude) {
+    public LogsTerminal(String date, String powerOn,  String coordinates) {
         this.date = date;
         this.powerOn = powerOn;
-        this.logitude = logitude ;
-        this.lutude = lutude  ;
+        this.coordinates = coordinates  ;
     }
 
     public String getDate() {
@@ -670,13 +712,13 @@ class LogsTerminal{
         this.date = date;
     }
 
-    public String getLogitude() {
-        return logitude;
-    }
-
-    public void setLogitude(String logitude) {
-        this.logitude = logitude;
-    }
+//    public String getLogitude() {
+//        return longitude;
+//    }
+//
+//    public void setLogitude(String logitude) {
+//        this.longitude = logitude;
+//    }
 
     public String getPowerOn() {
         return powerOn;
@@ -686,11 +728,11 @@ class LogsTerminal{
         this.powerOn = powerOn;
     }
 
-    public String getLutude() {
-        return lutude;
+    public String getCoordinates() {
+        return coordinates;
     }
 
-    public void setLutude(String lutude) {
-        this.lutude = lutude;
+    public void setlatitude(String coordinates) {
+        this.coordinates = coordinates;
     }
 }
