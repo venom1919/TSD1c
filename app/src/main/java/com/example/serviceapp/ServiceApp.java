@@ -72,7 +72,6 @@ public class ServiceApp extends Service {
     boolean locationisOn = true;
 
 
-
     private void getLocation() {
 
         LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -90,9 +89,7 @@ public class ServiceApp extends Service {
 
         Log.i("isGPSEnabled ", String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled) + " isPass" + String.valueOf(isPassiveProvider));
 
-
         LocationListener locationListener = new LocationListener() {
-
 
             public void onLocationChanged(Location location) {
 
@@ -150,17 +147,13 @@ public class ServiceApp extends Service {
 //                Log.i("IsPassive_loc" ,String.valueOf(loc.getLatitude()) + " " + loc.getLongitude()) ;
             }else{
 
-                Log.i("IsGPS_2", "net") ;
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 120000, 10, locationListener , Looper.getMainLooper());
-
             }
 
         } catch (NullPointerException ex) {
 
             ex.printStackTrace();
         }
-
-
     }
 
     public boolean isAppInstalled(String packageName) {
@@ -195,6 +188,7 @@ public class ServiceApp extends Service {
         public void run() {
 
             try {
+
                 while(true){
 
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -206,8 +200,6 @@ public class ServiceApp extends Service {
                     String timeOfTheDay = formatDate.format(d) + "\n" ;
                     String dateForLocation = formatDate.format(d) ;
                     downloadFiles(dayOfTheWeek, timeOfTheDay ,dateForLocation) ;
-
-                    System.out.println("sdssdsdsdsxzcxz");
                     Log.i("TIME_LOG", timeOfTheDay);
                     Thread.sleep(20000);
 
@@ -228,7 +220,10 @@ public class ServiceApp extends Service {
     ///////Write files date now
     public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
-        System.out.println("ya tut_12");
+        Date today = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String formattedDate = sdf.format(today);
+
         File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
         String name_pathToFile = path + "/" + name_file;
 
@@ -239,35 +234,32 @@ public class ServiceApp extends Service {
 
         if(f.exists() && !f.isDirectory()) {
 
-            System.out.println("ya tut_0");
             List<LogsTerminal> detailsList = new ArrayList<>();
-            detailsList.add(new LogsTerminal(dateForLocation, String.valueOf(locationisOn), String.valueOf(latitude + " " + longitude)));
+            detailsList.add(new LogsTerminal(formattedDate, String.valueOf(locationisOn), String.valueOf(latitude + " " + longitude)));
             writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
 
         }else {
 
-            if (longitude == 0.0 || latitude ==0 ){
+            if (longitude == 0.0 || latitude == 0.0 ){
                 return;
             }
 
             try (FileWriter fr = new FileWriter(name_pathToFile)){
 
-                System.out.println("ya tut_13");
                 JsonObject jsonObject = new JsonObject();
-                JsonArray jsonArray  = new JsonArray() ;
+                JsonArray jsonArray = new JsonArray() ;
                 JsonObject jsonObject1 = new JsonObject() ;
 
-
-                jsonObject1.addProperty("logs" ,dateForLocation);
-                jsonObject1.addProperty("powerOn" ,String.valueOf(locationisOn) );
-                jsonObject1.addProperty("coordinates" ,String.valueOf(latitude + " " + longitude));
+                jsonObject1.addProperty("logs", formattedDate);
+                jsonObject1.addProperty("powerOn", String.valueOf(locationisOn) );
+                jsonObject1.addProperty("coordinates", String.valueOf(latitude + " " + longitude));
 //                jsonObject1.addProperty("longitude" ,String.valueOf(longitude));
 
                 jsonArray.add(jsonObject1);
                 jsonObject.add("logs" ,jsonArray);
                 fr.write(jsonObject.toString());
                 fr.flush();
-                fr.close();
+//              fr.close();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -621,7 +613,6 @@ public class ServiceApp extends Service {
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
             startActivity(launchIntent);
         }
-
 }
 
     @Nullable
@@ -631,6 +622,7 @@ public class ServiceApp extends Service {
     }
 
     public static void writeCourseList(List<LogsTerminal> detailsList, String path, String fileName) {
+
         Details details = null;
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -656,7 +648,9 @@ public class ServiceApp extends Service {
             } else {
                 details.setDetailsList(detailsList);
             }
+
             objectMapper.writeValue(new File(fileName), details);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
