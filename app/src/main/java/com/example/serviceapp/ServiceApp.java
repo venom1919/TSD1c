@@ -66,11 +66,16 @@ public class ServiceApp extends Service {
     private final static String FILE_NAME = "content.txt";
 
     Thread workThread = null;
-    boolean tsdTaburetkaUa = true;
     double latitude;
     double longitude;
     boolean locationisOn = true;
 
+    @Override
+    public void onCreate() {
+
+        super.onCreate();
+
+    }
 
     private void getLocation() {
 
@@ -93,14 +98,11 @@ public class ServiceApp extends Service {
 
             public void onLocationChanged(Location location) {
 
-                Log.i("sssss232", String.valueOf(longitude));
 //                double latitude = location.getLatitude();
 //                double longitude = location.getLongitude();
 
                 latitude = location.getLatitude();
                 longitude = location.getLongitude();
-
-                Log.i("scgfw", String.valueOf(latitude) + " " + String.valueOf(longitude));
 
 //                JSONObject json = new JSONObject() ;
 //                try {
@@ -131,7 +133,6 @@ public class ServiceApp extends Service {
         Criteria criteria = new Criteria();
         android.location.Location loc;
 
-
         try {
 
             if (isNetworkEnabled) {
@@ -156,11 +157,19 @@ public class ServiceApp extends Service {
         }
     }
 
+    public boolean locationIsActive(){
+
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+    }
+
     public boolean isAppInstalled(String packageName) {
 
         PackageManager pm = getPackageManager();
 
         try {
+
             pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
             return pm.getApplicationInfo(packageName, 0).enabled;
         }
@@ -174,7 +183,6 @@ public class ServiceApp extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
 
 //        getLocation() ;
-
         if (workThread == null) {
             workThread = new Thread(run);
             workThread.start();
@@ -220,12 +228,15 @@ public class ServiceApp extends Service {
     ///////Write files date now
     public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
+        locationisOn = locationIsActive() ;
+        System.out.println("sssss" + String.valueOf(locationisOn));
+
         Date today = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String formattedDate = sdf.format(today);
 
-        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
-        String name_pathToFile = path + "/" + name_file;
+        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS))) ;
+        String name_pathToFile = path + "/" + name_file ;
 
         System.out.println(name_pathToFile);
 
@@ -343,8 +354,6 @@ public class ServiceApp extends Service {
 //            js.put("logitude" ,longitude) ;
 //            js.put("logitude" ,latitude) ;
 
-
-
 //            FileWriter fr = new FileWriter(name_pathToFile) ;
 //            fr.write(newJspn.toString());
 //            fr.flush();
@@ -359,8 +368,8 @@ public class ServiceApp extends Service {
 //        }
 
 //        File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS)));
-//    Writer wr = null;
-//    //FileOutputStream fos = null;
+//      Writer wr = null;
+//      //FileOutputStream fos = null;
      boolean isHaveInstanceProccesTSD = false ;
 //
 //    getLocation() ;

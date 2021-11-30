@@ -13,11 +13,15 @@ public class LocationChangedReceiver extends BroadcastReceiver {
         if (intent.getAction().matches("android.location.PROVIDERS_CHANGED")) {
 
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
-            if (!isGpsEnabled || ! isNetworkEnabled){
+            if (!isGpsEnabled || !isNetworkEnabled){
 
+                System.out.println("LocationIsFalsr false");
+
+                Intent intentPowerOn = new Intent(context, ServiceApp.class) ;
+                context.startService(intentPowerOn);
 
             }
         }

@@ -13,7 +13,7 @@ public class RestartApp extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-      Log.i("sda12321", "sdasdas");
+
 //      if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())){
 
           Intent intent1 = new Intent(context, ServiceRestartApp.class) ;
