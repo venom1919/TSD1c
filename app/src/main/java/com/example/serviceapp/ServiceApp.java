@@ -2,6 +2,8 @@ package com.example.serviceapp;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -13,10 +15,12 @@ import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.util.JsonWriter;
 import android.util.Log;
@@ -57,6 +61,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 
 
 import static android.app.PendingIntent.getActivity;
@@ -111,41 +116,34 @@ public class ServiceApp extends Service {
 //                    e.printStackTrace();
 //                }
 
+                System.out.println("position" + String.valueOf(latitude + " " + longitude));
                 location.reset();
 
             }
 
-//            public void onStatusChanged(String provider, int status,Bundle extras) {
-//                Log.i("onStusChade" ,"asdas");
-//            }
-//
-//            public void onProviderEnabled(String provider) {
-//                Log.i("onStusChade" ,"asdas");
-//            }
-//
-//            public void onProviderDisabled(String provider) {
-//                Log.i("onStusChade_2" ,"asdas");
-//            }
-        };
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+                Log.i("onStusChade", provider);
+            }
 
-        String provider_inet = "";
-        boolean haveBestProvider = false;
-        Criteria criteria = new Criteria();
-        android.location.Location loc;
+            public void onProviderEnabled(String provider) {
+                Log.i("onStusChade", provider);
+            }
+
+            public void onProviderDisabled(String provider) {
+                Log.i("provider","false");
+            }
+        };
 
         try {
 
             if (isNetworkEnabled) {
+
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     return;
                 }
+
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                Log.i("Lintutude" , String.valueOf(latitude)) ;
-//            }else if (isPassiveProvider){
-//                locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-//                Location loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER) ;
-//                Log.i("IsPassive_1", "net") ;
-//                Log.i("IsPassive_loc" ,String.valueOf(loc.getLatitude()) + " " + loc.getLongitude()) ;
+
             }else{
 
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 120000, 10, locationListener , Looper.getMainLooper());
@@ -180,13 +178,30 @@ public class ServiceApp extends Service {
     }
 
     @Override
+    public void onTaskRemoved(Intent rootIntent) {
+
+        Intent restartServiceIntent = new Intent(getApplicationContext(), this.getClass());
+        restartServiceIntent.setPackage(getPackageName());
+
+        PendingIntent restartServicePendingIntent = PendingIntent.getService(getApplicationContext(), 1, restartServiceIntent, PendingIntent.FLAG_ONE_SHOT);
+        AlarmManager alarmService = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+        alarmService.set(
+                AlarmManager.ELAPSED_REALTIME,
+                SystemClock.elapsedRealtime() + 1000,
+                restartServicePendingIntent);
+
+        super.onTaskRemoved(rootIntent);
+
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-//        getLocation() ;
         if (workThread == null) {
             workThread = new Thread(run);
             workThread.start();
         }
+
         return Service.START_STICKY;
     }
 
@@ -195,7 +210,7 @@ public class ServiceApp extends Service {
         @Override
         public void run() {
 
-            try {
+            try{
 
                 while(true){
 
@@ -229,7 +244,6 @@ public class ServiceApp extends Service {
     public void downloadFiles(String name_file, String data, String dateForLocation)  {
 
         locationisOn = locationIsActive() ;
-        System.out.println("sssss" + String.valueOf(locationisOn));
 
         Date today = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -508,11 +522,6 @@ public class ServiceApp extends Service {
 //            System.out.println(gson.toJson("asdasdas" + root));
 //        }
 //
-//
-//
-//
-//
-//
 //        //wr.write(employeeDetails.toString());
 //        wr.flush();
 //        wr.close();
@@ -580,17 +589,17 @@ public class ServiceApp extends Service {
 //
         try{
 
-        final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
+            final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
 
-        /////TSD
-        Process p = Runtime.getRuntime().exec("ps");
-        p.waitFor();
-        StringBuffer sb = new StringBuffer();
-        InputStreamReader isr = new InputStreamReader(p.getInputStream());
-        int ch;
-        char[] buf = new char[1024];
-        while ((ch = isr.read(buf)) != -1) {
-            sb.append(buf, 0, ch);
+            /////TSD
+            Process p = Runtime.getRuntime().exec("ps");
+            p.waitFor();
+            StringBuffer sb = new StringBuffer();
+            InputStreamReader isr = new InputStreamReader(p.getInputStream());
+            int ch;
+            char[] buf = new char[1024];
+            while ((ch = isr.read(buf)) != -1) {
+                sb.append(buf, 0, ch);
         }
 
         String[] processLinesAr = sb.toString().split("\n");
@@ -606,7 +615,7 @@ public class ServiceApp extends Service {
                 int pid = Integer.parseInt(comps[1]);
                 String packageName = comps[8] ;
                 if (packageName.equals(tsdTaburetka)){
-                   isHaveInstanceProccesTSD =true ;
+                   isHaveInstanceProccesTSD = true ;
                 }
 //                pMap.put(packageName, pid);
             }
@@ -637,7 +646,6 @@ public class ServiceApp extends Service {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             byte[] jsonData = new byte[0];
-                Log.i("1mn" ,"y") ;
 
             File f = new File(fileName);
             byte[] buffer = new byte[(int)f.length()];
@@ -649,7 +657,6 @@ public class ServiceApp extends Service {
 
             List<LogsTerminal> existingCourseList = details.getDetailsList();
             if(null != existingCourseList && existingCourseList.size() > 0) {
-                    Log.i("msd23" ,"sss") ;
                     for (Object l : detailsList){
                       existingCourseList.add((LogsTerminal) l) ;
                     }
