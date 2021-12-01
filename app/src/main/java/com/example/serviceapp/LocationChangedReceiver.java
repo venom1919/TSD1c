@@ -18,8 +18,6 @@ public class LocationChangedReceiver extends BroadcastReceiver {
 
             if (!isGpsEnabled || !isNetworkEnabled){
 
-                System.out.println("LocationIsFalsr false");
-
                 Intent intentPowerOn = new Intent(context, ServiceApp.class) ;
                 context.startService(intentPowerOn);
 

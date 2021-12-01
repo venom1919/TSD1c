@@ -77,9 +77,7 @@ public class ServiceApp extends Service {
 
     @Override
     public void onCreate() {
-
         super.onCreate();
-
     }
 
     private void getLocation() {
