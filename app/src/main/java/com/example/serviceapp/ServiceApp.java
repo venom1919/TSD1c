@@ -46,6 +46,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -53,6 +54,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -587,10 +590,32 @@ public class ServiceApp extends Service {
 //
         try{
 
+            String pathTo1c = "/data/app/com.treedo.taburetka.tsd" ;
             final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
 
+            String [] arr = new String[]{
+                "/data",
+                    "-c",
+                    "ls /etc | grep com.treedo.taburetka.tsd"
+            } ;
             /////TSD
-            Process p = Runtime.getRuntime().exec("ps");
+
+//            Class<?> execClass = Class.forName("android.os.Exec");
+//            Method createSubprocess = execClass.getMethod("createSubprocess", String.class, String.class, String.class, int[].class);
+//            int[] pid = new int[1];
+//            FileDescriptor fd = (FileDescriptor)createSubprocess.invoke(null, "/system/bin/ls", "/", null, pid);
+//
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fd)));
+//
+//            String tmp = getProcces(reader) ;
+//
+//            System.out.println("tmp " + " " +  tmp);
+//
+
+
+            String[] command = {"/system/bin/app_process32"};
+
+            Process p = Runtime.getRuntime().exec("ps -ef");
             p.waitFor();
             StringBuffer sb = new StringBuffer();
             InputStreamReader isr = new InputStreamReader(p.getInputStream());
@@ -602,35 +627,55 @@ public class ServiceApp extends Service {
 
         String[] processLinesAr = sb.toString().split("\n");
 
+        int x = 0 ;
         for(String line : processLinesAr) {
 
+            System.out.println("ps -returned " + " " + line + " " + x++);
             String[] comps = line.split("[\\s]+");
 
             if (comps.length != 9) {
-                String packageName = comps[5] ;
+                String packageName = comps[0] ;
+                System.out.println("pkg_1" + " " + packageName) ;
             }else {
 
-                int pid = Integer.parseInt(comps[1]);
+                //int pid = Integer.parseInt(comps[1]);
                 String packageName = comps[8] ;
                 if (packageName.equals(tsdTaburetka)){
-                   isHaveInstanceProccesTSD = true ;
+                    System.out.println("pkg_2" + "" + packageName) ;
+                    isHaveInstanceProccesTSD = true ;
                 }
 //                pMap.put(packageName, pid);
             }
         }
 
-    } catch (InterruptedException e) {
-        e.printStackTrace();
-    } catch (IOException e) {
+    } catch (Exception e) {
         e.printStackTrace();
     }
-        if(!isHaveInstanceProccesTSD){
-            PackageManager pac = getPackageManager() ;
-            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
-            startActivity(launchIntent);
-        }
+//        if(!isHaveInstanceProccesTSD){
+//            PackageManager pac = getPackageManager() ;
+//            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+//            startActivity(launchIntent);
+//        }
 }
 
+
+public String getProcces(BufferedReader reader) {
+
+    String output = "";
+    String line = "";
+    while (true) {
+        try {
+            if (!((line = reader.readLine()) != null)) break;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        output += line + "";
+
+        System.out.println(output);
+    }
+
+    return  output ;
+}
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
