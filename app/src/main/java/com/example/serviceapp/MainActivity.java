@@ -11,6 +11,7 @@ import android.app.usage.UsageStatsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -49,15 +50,25 @@ public class MainActivity extends Activity {
 //        ,  PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
 //        PackageManager.DONT_KILL_APP);
 
-//        Intent intent = pm.getLaunchIntentForPackage("com.treedo.taburetka.tsd") ;
+//        Intent intent = new Intent("com.treedo.taburetka.tsd") ;
 //        startActivity(intent) ;
 
         ////POWER_On
         Intent intentPowerOn = new Intent(this, ServiceApp.class) ;
         startService(intentPowerOn);
 
-//        Intent tsd = new Intent("com.treedo.taburetka.tsd") ;
-//        startActivity(tsd);
+//        Intent in = new Intent("com.treedo.taburetka.tsd");
+
+//        sendBroadcast(new Intent(this, TsdReceiver.class).setAction("com.treedo.taburetka.tsd"));
+
+        //        TsdReceiver tsdReceiver  = new TsdReceiver() ;
+//
+//        registerReceiver(tsdReceiver, new IntentFilter("com.treedo.taburetka.tsd"));
+//        tsdReceiver.onReceive(this ,new Intent());
+//        Intent intentTsd = new Intent(this, TsdService.class) ;
+//        startService(intentTsd);
+
+
 
 
 //        ////POWER_On
@@ -72,7 +83,7 @@ public class MainActivity extends Activity {
 //        Intent intent = new Intent(this, ActivityAutoRun.class) ;
 //        startActivity(intent);
 
-        //////1c
+           //////1c
            PackageManager pac = getPackageManager() ;
            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
            startActivity(launchIntent);
