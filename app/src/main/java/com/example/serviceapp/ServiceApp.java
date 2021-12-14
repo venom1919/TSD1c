@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -28,8 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import org.w3c.dom.ls.LSOutput;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,7 +38,9 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 import static android.app.PendingIntent.getActivity;
@@ -48,17 +49,16 @@ public class ServiceApp extends Service {
 
     private final static String FILE_NAME = "content.txt";
 
-    public static long firstCall1c ;
+    public static long firstCall1c = 0;
 
-    boolean startedCheck1c = false ;
     Thread workThread = null;
     double latitude;
     double longitude;
     boolean locationisOn = true;
+    Map<Double, Double> coord = new HashMap<>() ;
 
     @Override
     public void onCreate() {
-
         super.onCreate();
     }
 
@@ -70,6 +70,8 @@ public class ServiceApp extends Service {
         boolean isPassiveProvider = locationManager.isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
+
+//        String bestProvider = locationManager.getBestProvider(new Criteria(), true);
 
         if (netInfo != null && netInfo.isConnected()) {
             isNetworkEnabled = true;
@@ -86,8 +88,10 @@ public class ServiceApp extends Service {
 //                double latitude = location.getLatitude();
 //                double longitude = location.getLongitude();
 
-                latitude = location.getLatitude();
-                longitude = location.getLongitude();
+//                latitude = location.getLatitude();
+//                longitude = location.getLongitude();
+
+//                coord.put(latitude,longitude);
 
 //                JSONObject json = new JSONObject() ;
 //                try {
@@ -96,7 +100,7 @@ public class ServiceApp extends Service {
 //                    e.printStackTrace();
 //                }
 
-                System.out.println("position" + String.valueOf(latitude + " " + longitude));
+                System.out.println("position__on" + String.valueOf(latitude + " " + longitude));
                 location.reset();
 
             }
@@ -110,9 +114,10 @@ public class ServiceApp extends Service {
             }
 
             public void onProviderDisabled(String provider) {
-                Log.i("provider","false");
+                Log.i("provider", "false");
             }
         };
+
 
         try {
 
@@ -123,16 +128,24 @@ public class ServiceApp extends Service {
                 }
 
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
+                Location loc  = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) ;
+                latitude = loc.getLatitude() ;
+                longitude = loc.getLongitude() ;
 
             }else{
 
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 120000, 10, locationListener , Looper.getMainLooper());
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
+                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) ;
+                latitude = loc.getLatitude() ;
+                longitude = loc.getLongitude() ;
+
             }
 
         } catch (NullPointerException ex) {
 
             ex.printStackTrace();
         }
+
     }
 
     public boolean locationIsActive(){
@@ -179,8 +192,13 @@ public class ServiceApp extends Service {
 
         Bundle extras = intent.getExtras();
 
-        firstCall1c = extras.getLong("Time_TSD") ;
-        System.out.println(firstCall1c);
+        try {
+
+            firstCall1c = extras.getLong("Time_TSD") ;
+
+        }catch (NullPointerException ex){
+            firstCall1c = 0;
+        }
 
         if (workThread == null) {
             workThread = new Thread(run);
@@ -237,7 +255,7 @@ public class ServiceApp extends Service {
         File path = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_ALARMS))) ;
         String name_pathToFile = path + "/" + name_file ;
 
-        System.out.println(name_pathToFile);
+//        System.out.println(name_pathToFile);
 
         getLocation() ;
         File f = new File(name_pathToFile);
@@ -245,7 +263,7 @@ public class ServiceApp extends Service {
         if(f.exists() && !f.isDirectory()) {
 
             List<LogsTerminal> detailsList = new ArrayList<>();
-            detailsList.add(new LogsTerminal(formattedDate, String.valueOf(locationisOn), String.valueOf(latitude + " " + longitude)));
+            detailsList.add(new LogsTerminal(formattedDate, String.valueOf(locationisOn), String.valueOf(latitude) + " " + longitude));
             writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
 
         }else {
@@ -274,35 +292,24 @@ public class ServiceApp extends Service {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
 
+     boolean itsNewTerminal = false ;
      boolean isHaveInstanceProccesTSD = false ;
 
         try{
 
-            String pathTo1c = "/data/app/com.treedo.taburetka.tsd" ;
             final String tsdTaburetka = "com.treedo.taburetka.tsd" ;
-
-            String [] arr = new String[]{
-                "/data",
-                    "-c",
-                    "ls /etc | grep com.treedo.taburetka.tsd"
-            } ;
 
             String myVersion = Build.VERSION.RELEASE ;
             double x = (double)Double.valueOf(myVersion) ;
-
-            System.out.println("calc_time "+ ServiceApp.firstCall1c);
             if (x>=7 & firstCall1c != 0){
-                System.out.println("time is long  " + System.currentTimeMillis());
-                checkPositiveStatus1c(System.currentTimeMillis()) ;
-                return;
+                itsNewTerminal = true;
+                System.out.println("time is long " + System.currentTimeMillis());
+                checkPositiveStatus1c() ;
             }
 
-            String[] command = {"/system/bin/app_process32"};
-
-            Process p = Runtime.getRuntime().exec("ps aux");
+            Process p = Runtime.getRuntime().exec("ps");
             p.waitFor();
             StringBuffer sb = new StringBuffer();
             InputStreamReader isr = new InputStreamReader(p.getInputStream());
@@ -316,64 +323,43 @@ public class ServiceApp extends Service {
 
         for(String line : processLinesAr) {
 
-           // System.out.println("ps -returned " + " " + line + " ");
             String[] comps = line.split("[\\s]+");
-
             if (comps.length != 9) {
                 String packageName = comps[0] ;
-                System.out.println("pkg_1" + " " + packageName) ;
             }else {
 
-                //int pid = Integer.parseInt(comps[1]);
                 String packageName = comps[8] ;
                 if (packageName.equals(tsdTaburetka)){
-//                    System.out.println("pkg_2" + "" + packageName) ;
                     isHaveInstanceProccesTSD = true ;
                 }
-//                pMap.put(packageName, pid);
             }
         }
 
-    } catch (Exception e) {
+    }catch (Exception e) {
         e.printStackTrace();
     }
-//        if(!isHaveInstanceProccesTSD){
-//            PackageManager pac = getPackageManager() ;
-//            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+        if(!isHaveInstanceProccesTSD & !itsNewTerminal){
+//            System.out.println("error my errpr  " + String.valueOf(itsNewTerminal));
+            PackageManager pac = getPackageManager() ;
+            System.out.println("isHaveInstanceProccesTSD");
+            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
 //            startActivity(launchIntent);
-//        }
+        }
 }
 
-    public void checkPositiveStatus1c(long lastDate) {
+    public void checkPositiveStatus1c() {
 
-//        Intent intent = new Intent();
-//        intent.setAction("com.treedo.taburetka.tsd");
-//        sendBroadcast(intent);
+        long lastChecked = System.currentTimeMillis() - firstCall1c ;
 
-        if (!startedCheck1c){
-
-//            firstCall1c = System.currentTimeMillis();
-            System.out.println("firstCall1c " +  firstCall1c);
-            startedCheck1c = true ;
-        }
-
-        System.out.println("firstCall1c " + firstCall1c);
-
-        long lastChecked = lastDate - firstCall1c ;
-
-
-//        System.out.println("lastChecked" + lastChecked);
-
+//        System.out.println("1cc_time" + lastChecked);
         if(lastChecked > 180000){
-
             PackageManager pac = getPackageManager() ;
+            System.out.println("checkPositiveStatus1c");
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
             startActivity(launchIntent);
-            startedCheck1c = false ;
+            firstCall1c  = System.currentTimeMillis() ;
         }
-
     }
-
 
     public String getProcces(BufferedReader reader) {
 
@@ -383,7 +369,8 @@ public class ServiceApp extends Service {
     while (true) {
 
         try {
-            if (!((line = reader.readLine()) != null)) break;
+            if (!((line = reader.readLine()) != null))
+                break;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -394,6 +381,7 @@ public class ServiceApp extends Service {
 
     return  output ;
 }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -407,15 +395,17 @@ public class ServiceApp extends Service {
         ObjectMapper objectMapper = new ObjectMapper();
 
         try {
-            byte[] jsonData = new byte[0];
+            byte[] jsonData ;
 
             File f = new File(fileName);
-            byte[] buffer = new byte[(int)f.length()];
+
+            byte[] buffer = new byte[(int) new File(fileName).length()] ;
+//            byte[] buffer = new byte[(int)f.length()];
             FileInputStream is = new FileInputStream(fileName);
             is.read(buffer);
             is.close();
-            jsonData = buffer ;
-            details = objectMapper.readValue(jsonData, Details.class);
+//            jsonData = buffer ;
+            details = objectMapper.readValue(buffer, Details.class);
 
             List<LogsTerminal> existingCourseList = details.getDetailsList();
             if(null != existingCourseList && existingCourseList.size() > 0) {
@@ -457,16 +447,9 @@ class LogsTerminal{
     @JsonProperty("coordinates")
     private String coordinates;
 
-//    @JsonProperty("longitude")
-//    private String longitude;
-
     @JsonProperty("powerOn")
     private String powerOn;
 
-
-
-    public LogsTerminal() {
-    }
 
     public LogsTerminal(String date, String powerOn,  String coordinates) {
         this.date = date;
@@ -481,14 +464,6 @@ class LogsTerminal{
     public void setDate(String date) {
         this.date = date;
     }
-
-//    public String getLogitude() {
-//        return longitude;
-//    }
-//
-//    public void setLogitude(String logitude) {
-//        this.longitude = logitude;
-//    }
 
     public String getPowerOn() {
         return powerOn;

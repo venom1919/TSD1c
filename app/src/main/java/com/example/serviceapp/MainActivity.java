@@ -57,6 +57,10 @@ public class MainActivity extends Activity {
         Intent intentPowerOn = new Intent(this, ServiceApp.class) ;
         startService(intentPowerOn);
 
+        Intent intentTSDChecked = new Intent(this, Tsd.class) ;
+        this.startActivity(intentTSDChecked);
+
+
 //        Intent in = new Intent("com.treedo.taburetka.tsd");
 
 //        sendBroadcast(new Intent(this, TsdReceiver.class).setAction("com.treedo.taburetka.tsd"));
@@ -96,4 +100,14 @@ public class MainActivity extends Activity {
         return super.onCreateOptionsMenu(menu);
     }
 
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
 }
