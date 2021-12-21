@@ -15,21 +15,29 @@ import java.io.IOException;
 public class ActivityAutoRun extends AppCompatActivity {
 
     @Override
+    protected void onStart() {
+        System.out.println("parasha");
+        finish();
+        super.onStart();
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-//        PackageManager pac = getPackageManager() ;
-//        Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
-//        startActivity(launchIntent);
-
-        PackageManager pac = getPackageManager();
-        ApplicationInfo ai = null;
-        try {
-            ai = pac.getApplicationInfo("com.treedo.taburetka.tsd", 0);
-            String namea = ai.name;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-        CharSequence name = pac.getApplicationLabel(ai);
     }
+
+    @Override
+    public void closeContextMenu() {
+        super.closeContextMenu();
+    }
+
+    @Override
+    public void closeOptionsMenu() {
+        super.closeOptionsMenu();
+    }
+
+
+
+
+
 }

@@ -4,12 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.telephony.TelephonyManager;
-import android.util.Log;
-import android.widget.Toast;
 
 public class TsdReceiver extends BroadcastReceiver {
 
@@ -20,7 +16,6 @@ public class TsdReceiver extends BroadcastReceiver {
 
     public TsdReceiver() {
         super();
-        System.out.println("SSSSSSS");
     }
 
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
@@ -34,17 +29,16 @@ public class TsdReceiver extends BroadcastReceiver {
             boolean getInfoByTSD = build.getBoolean("TSD");
 
             if (getInfoByTSD){
+
                 Intent tsdTimeWork = new Intent(context, ServiceApp.class) ;
                 tsdTimeWork.putExtra("Time_TSD", System.currentTimeMillis()) ;
-                System.out.println("titututi");
                 context.startService(tsdTimeWork);
+
             }
 
         }catch (Exception ex){
 
         }
-
-
 }
 
 }

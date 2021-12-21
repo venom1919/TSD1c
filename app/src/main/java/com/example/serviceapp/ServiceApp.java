@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.icu.text.DateFormat;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -32,15 +33,21 @@ import com.google.gson.JsonObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.Time;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 
 import static android.app.PendingIntent.getActivity;
@@ -50,12 +57,13 @@ public class ServiceApp extends Service {
     private final static String FILE_NAME = "content.txt";
 
     public static long firstCall1c = 0;
-
+    int count  =0 ;
     Thread workThread = null;
     double latitude;
     double longitude;
     boolean locationisOn = true;
-    Map<Double, Double> coord = new HashMap<>() ;
+    long milliseconds ;
+//  Map<Double, Double> coord = new HashMap<>() ;
 
     @Override
     public void onCreate() {
@@ -71,7 +79,7 @@ public class ServiceApp extends Service {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
 
-//        String bestProvider = locationManager.getBestProvider(new Criteria(), true);
+//      String bestProvider = locationManager.getBestProvider(new Criteria(), true);
 
         if (netInfo != null && netInfo.isConnected()) {
             isNetworkEnabled = true;
@@ -80,7 +88,6 @@ public class ServiceApp extends Service {
         }
 
         Log.i("isGPSEnabled ", String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled) + " isPass" + String.valueOf(isPassiveProvider));
-
         LocationListener locationListener = new LocationListener() {
 
             public void onLocationChanged(Location location) {
@@ -128,7 +135,7 @@ public class ServiceApp extends Service {
                 }
 
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-                Location loc  = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) ;
+                Location loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) ;
                 latitude = loc.getLatitude() ;
                 longitude = loc.getLongitude() ;
 
@@ -138,7 +145,6 @@ public class ServiceApp extends Service {
                 Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) ;
                 latitude = loc.getLatitude() ;
                 longitude = loc.getLongitude() ;
-
             }
 
         } catch (NullPointerException ex) {
@@ -148,6 +154,155 @@ public class ServiceApp extends Service {
 
     }
 
+    public void writesTimeWorkTSD() {
+
+        try {
+
+            count =count +1 ;
+
+            if(count <4){
+                return;
+            }
+
+            String timeStamp = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS) + "/" + new SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().getTime());
+            FileReader fr = new FileReader(timeStamp);
+            BufferedReader reader = new BufferedReader(fr);
+            String lines = reader.readLine().substring(1);
+
+            if (lines != null) {
+                count = count + 1 ;
+                SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date d = f.parse(lines);
+                milliseconds = d.getTime();
+
+                System.out.println(System.currentTimeMillis() - milliseconds);
+                if (System.currentTimeMillis() - milliseconds > 180000 & count>4) {
+                    PackageManager pac = getPackageManager();
+                    Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+                    startActivity(launchIntent);
+                    count = 0  ;
+                }
+
+//                line = reader.readLine();
+
+//                if (line != null) {
+//                SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//                Date d = f.parse(line);
+//                milliseconds = d.getTime();
+//                System.out.println("now _____" + milliseconds);
+
+//                if (System.currentTimeMillis() - milliseconds > 180000) {
+//                    PackageManager pac = getPackageManager();
+//                    Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+//                    startActivity(launchIntent);
+//                }
+//            }
+
+            }
+
+
+//            if (!line.equals(null)) {
+//
+//                SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//                Date d = f.parse(line);
+//                milliseconds = d.getTime();
+//                System.out.println("now _____" + milliseconds);
+//
+//                if (System.currentTimeMillis() - milliseconds > 180000) {
+//                    PackageManager pac = getPackageManager();
+//                    Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+//                    startActivity(launchIntent);
+//                }
+
+//            }
+
+        }catch(Exception e){
+            PackageManager pac = getPackageManager();
+            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+            startActivity(launchIntent);
+            e.printStackTrace() ;
+        }
+
+
+//
+////      String[] arrayTimeTsd = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS))).list((dir, name) -> new Date(new SimpleDateFormat("yyyy-MM-dd")));
+////      File f = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS))) + String.valueOf(new SimpleDateFormat("yyyy-MM-dd")) ;
+//        Time time;
+//        Date date ;
+////        SimpleDateFormat fmt = new SimpleDateFormat("");
+//
+//        FileInputStream fileInputStream = null ;
+//        try {
+//
+////            fileInputStream = new FileInputStream(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS)) + String.valueOf(new SimpleDateFormat("yyyy-MM-dd"))) ;
+////            byte[] buff = new byte[fileInputStream.available()] ;
+//            String line = new String();
+//            Date data = new Date() ;
+//
+//            String timeStamp = new SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().getTime());
+//            System.out.println(timeStamp);
+//            Scanner scan = new Scanner(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS)) + "/" +timeStamp);
+//
+////            FileInputStream fin=new FileInputStream(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS)) + "/" +timeStamp) ;
+//
+//
+//            File file = new File(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_NOTIFICATIONS)) + "/" +timeStamp);
+//
+//            FileReader fr = new FileReader(file);
+//            //создаем BufferedReader с существующего FileReader для построчного считывания
+//            BufferedReader reader = new BufferedReader(fr);
+//            // считаем сначала первую строку
+//            String line = reader.readLine();
+//            while (line != null) {
+//                System.out.println(line);
+//                // считываем остальные строки в цикле
+//                line = reader.readLine();
+//
+//
+//
+//
+//
+//            while(scan.hasNextLine()) {
+//                line = scan.nextLine();
+//                System.out.println("time is file " + line);
+//
+//            }
+//
+//            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//            try {
+//                Date d = f.parse(line);
+//                 milliseconds = d.getTime();
+//
+//                 if (System.currentTimeMillis() - milliseconds > 180000){
+//                     PackageManager pac = getPackageManager() ;
+//                     Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+//                     startActivity(launchIntent);
+//                 }
+//
+//            } catch (ParseException e) {
+//                e.printStackTrace();
+//            }
+//
+////            Date date1 = fmt.parse(line) ;
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+////      Date date = fmt.parse(dateString);
+////        for (String str : arrayTimeTsd) {
+////
+//////            try {
+//////                date = fmt.parse(str);
+//////                System.out.println(date);
+//////            } catch (ParseException e) {
+//////                e.printStackTrace();
+//////            }
+////
+////            System.out.println(str);
+////        }
+
+    }
     public boolean locationIsActive(){
 
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -163,8 +318,8 @@ public class ServiceApp extends Service {
 
             pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
             return pm.getApplicationInfo(packageName, 0).enabled;
-        }
-        catch(PackageManager.NameNotFoundException e) {
+
+        }catch(PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             return false;
         }
@@ -190,15 +345,16 @@ public class ServiceApp extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        Bundle extras = intent.getExtras();
-
-        try {
-
-            firstCall1c = extras.getLong("Time_TSD") ;
-
-        }catch (NullPointerException ex){
-            firstCall1c = 0;
-        }
+//        Bundle extras = intent.getExtras();
+//
+//        try {
+//
+//            firstCall1c = extras.getLong("Time_TSD") ;
+//
+//        }catch (NullPointerException ex){
+//
+//            firstCall1c = 0;
+//        }
 
         if (workThread == null) {
             workThread = new Thread(run);
@@ -225,10 +381,10 @@ public class ServiceApp extends Service {
                     String dayOfTheWeek = sdf.format(d) + ".json";
                     String timeOfTheDay = formatDate.format(d) + "\n" ;
                     String dateForLocation = formatDate.format(d) ;
-                    downloadFiles(dayOfTheWeek, timeOfTheDay ,dateForLocation) ;
+                    downloadFiles(dayOfTheWeek, timeOfTheDay, dateForLocation) ;
                     Log.i("TIME_LOG", timeOfTheDay);
+//                    writesTimeWorkTSD() ;
                     Thread.sleep(20000);
-
                 }
 
             }catch (InterruptedException iex) {
@@ -303,48 +459,52 @@ public class ServiceApp extends Service {
 
             String myVersion = Build.VERSION.RELEASE ;
             double x = (double)Double.valueOf(myVersion) ;
-            if (x>=7 & firstCall1c != 0){
-                itsNewTerminal = true;
-                System.out.println("time is long " + System.currentTimeMillis());
-                checkPositiveStatus1c() ;
-            }
+//            if (x>=6 & firstCall1c != 0){
+//                itsNewTerminal = true;
+//                System.out.println("time is long " + System.currentTimeMillis());
+////                checkPositiveStatus1c() ;
+//                writesTimeWorkTSD() ;
+//            }
 
-            Process p = Runtime.getRuntime().exec("ps");
-            p.waitFor();
-            StringBuffer sb = new StringBuffer();
-            InputStreamReader isr = new InputStreamReader(p.getInputStream());
-            int ch;
-            char[] buf = new char[1024];
-            while ((ch = isr.read(buf)) != -1) {
-                sb.append(buf, 0, ch);
-        }
-
-        String[] processLinesAr = sb.toString().split("\n");
-
-        for(String line : processLinesAr) {
-
-            String[] comps = line.split("[\\s]+");
-            if (comps.length != 9) {
-                String packageName = comps[0] ;
+            if (x >=6.0){
+                writesTimeWorkTSD() ;
             }else {
+                Process p = Runtime.getRuntime().exec("ps");
+                p.waitFor();
+                StringBuffer sb = new StringBuffer();
+                InputStreamReader isr = new InputStreamReader(p.getInputStream());
+                int ch;
+                char[] buf = new char[1024];
+                while ((ch = isr.read(buf)) != -1) {
+                    sb.append(buf, 0, ch);
+                }
 
-                String packageName = comps[8] ;
-                if (packageName.equals(tsdTaburetka)){
-                    isHaveInstanceProccesTSD = true ;
+                String[] processLinesAr = sb.toString().split("\n");
+
+                for (String line : processLinesAr) {
+
+                    String[] comps = line.split("[\\s]+");
+                    if (comps.length != 9) {
+                        String packageName = comps[0];
+                    } else {
+
+                        String packageName = comps[8];
+                        if (packageName.equals(tsdTaburetka)) {
+                            isHaveInstanceProccesTSD = true;
+                        }
+                    }
                 }
             }
-        }
-
     }catch (Exception e) {
         e.printStackTrace();
     }
-        if(!isHaveInstanceProccesTSD & !itsNewTerminal){
-//            System.out.println("error my errpr  " + String.valueOf(itsNewTerminal));
-            PackageManager pac = getPackageManager() ;
-            System.out.println("isHaveInstanceProccesTSD");
-            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
-//            startActivity(launchIntent);
-        }
+//        if(!isHaveInstanceProccesTSD & !itsNewTerminal){
+////            System.out.println("error my errpr  " + String.valueOf(itsNewTerminal));
+//            PackageManager pac = getPackageManager() ;
+//            System.out.println("isHaveInstanceProccesTSD");
+//            Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
+////            startActivity(launchIntent);
+//        }
 }
 
     public void checkPositiveStatus1c() {
@@ -354,7 +514,6 @@ public class ServiceApp extends Service {
 //        System.out.println("1cc_time" + lastChecked);
         if(lastChecked > 180000){
             PackageManager pac = getPackageManager() ;
-            System.out.println("checkPositiveStatus1c");
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
             startActivity(launchIntent);
             firstCall1c  = System.currentTimeMillis() ;
@@ -375,8 +534,6 @@ public class ServiceApp extends Service {
             e.printStackTrace();
         }
         output += line + "";
-
-        System.out.println(output);
     }
 
     return  output ;
@@ -450,8 +607,11 @@ class LogsTerminal{
     @JsonProperty("powerOn")
     private String powerOn;
 
+    public LogsTerminal() {
 
-    public LogsTerminal(String date, String powerOn,  String coordinates) {
+    }
+
+    public LogsTerminal(String date, String powerOn, String coordinates) {
         this.date = date;
         this.powerOn = powerOn;
         this.coordinates = coordinates  ;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.serviceapp">
+    package="com.example.serviceapp" >
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
@@ -9,7 +9,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
-
     <uses-permission
         android:name="android.permission.REAL_GET_TASKS"
         tools:ignore="ProtectedPermissions" />
@@ -22,7 +21,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_GPS" />
-    <uses-permission android:name = "android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -32,25 +31,16 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ServiceApp">
-
-<!--        <receiver-->
-<!--            android:name=".TsdReceiver"-->
-<!--            android:theme="@style/Theme.Transparent"-->
-<!--            android:exported="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.treedo.taburetka.tsd" />-->
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
+        android:theme="@style/Theme.ServiceApp" >
 
         <activity
             android:name=".Tsd"
             android:exported="true"
-            android:noHistory="true">
+            android:noHistory="true" >
             <intent-filter>
                 <action android:name="com.treedo.taburetka.tsd" />
-                <category android:name = "android.intent.category.DEFAULT" />
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -60,41 +50,53 @@
             android:exported="true"
             android:process=":tsd_running" />
 
-
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+<!--               //<action android:name="android.intent.action.QUICKBOOT_POWERON" />-->
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
+        </activity> <!-- <activity -->
+        <!-- android:name=".ActivityAutoRun" -->
+        <!-- android:exported="true"> -->
+        <!-- <intent-filter> -->
+        <!-- <action android:name="android.intent.action.BATTERY_OKAY" /> -->
+        <!-- <category android:name="android.intent.category.DEFAULT" /> -->
+        <!-- </intent-filter> -->
+        <!-- </activity> -->
         <receiver
-            android:name=".AlarmReciever"
-            android:exported="true">
+            android:name=".BootUpReceiver"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <category android:name="android.intent.category.DEFAULT"/>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.REBOOT"/>
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+
         </receiver>
 
-        <receiver
-            android:name=".TsdReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BATTERY_OKAY" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>
+<!--        <receiver-->
+<!--            android:name=".TsdReceiver"-->
+<!--            android:exported="true" >-->
+
+<!--            &lt;!&ndash; android:enabled="true" &ndash;&gt;-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.BATTERY_OKAY" />-->
+<!--                <action android:name="android.intent.action.QUICKBOOT_POWERON" />-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
 
         <service
             android:name=".ServiceApp"
             android:enabled="true"
             android:exported="true"
             android:process=":my_app_alternate" />
-
     </application>
 
 </manifest>

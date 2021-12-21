@@ -61,6 +61,12 @@ public class MainActivity extends Activity {
         this.startActivity(intentTSDChecked);
 
 
+        Intent intentReceiver = new Intent(this, TsdReceiver.class) ;
+
+
+        this.registerReceiver(new TsdReceiver(), new IntentFilter(
+                "android.intent.action.TIME_TICK"));
+
 //        Intent in = new Intent("com.treedo.taburetka.tsd");
 
 //        sendBroadcast(new Intent(this, TsdReceiver.class).setAction("com.treedo.taburetka.tsd"));
