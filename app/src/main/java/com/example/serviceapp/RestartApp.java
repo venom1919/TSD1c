@@ -26,7 +26,6 @@ public class RestartApp extends BroadcastReceiver {
             Intent i = new Intent(context, ServiceRestartApp.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(i);
-
 //    }
 
     }

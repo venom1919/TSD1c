@@ -7,7 +7,12 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Observable;
+import android.location.Criteria;
+import android.location.Geocoder;
+import android.location.GnssAntennaInfo;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -15,6 +20,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.Looper;
@@ -28,20 +34,24 @@ import android.telephony.CellSignalStrengthCdma;
 import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
 import android.telephony.CellSignalStrengthWcdma;
-import android.telephony.PhoneStateListener;
-import android.telephony.SignalStrength;
-import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
-import com.google.android.gms.location.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+
+import android.location.LocationManager;
+
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -52,7 +62,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -61,13 +70,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
-import javax.security.auth.callback.Callback;
+import static java.security.AccessController.getContext;
 
 public class ServiceApp extends Service {
-
-
-//  private final static String FILE_NAME = "content.txt";
 
     public static long firstCall1c = 0;
     int count = 0;
@@ -90,55 +97,46 @@ public class ServiceApp extends Service {
     public static int netType = 0;
     public Map<String, String> typeNetworkIsActive = new HashMap<>();
     String network;
+    LocationManager locationManager;
+    boolean simCardActive ;  ;
 
     @Override
     public void onCreate() {
         super.onCreate();
     }
 
-    private void getLocation() {
+    public void getLocation1() {
 
-        LocationManager mLocationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
+//        LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
+//        Criteria criteria = new Criteria();
+//        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+//        List<String> lProviders = locationManager.getProviders(false);
+//        for (int i = 0; i < lProviders.size(); i++) {
+//            Log.d("LocationActivity", lProviders.get(i));
+//        }
+//        String provider = locationManager.getBestProvider(criteria, true);
+//
+//        LocationListener locationListenerGPS = location -> {
+//            System.out.println("msg123");
+//
+//            double latitude = location.getLatitude();
+//            double longitude = location.getLongitude();
+//            String msg = "New Latitude: " + latitude + "New Longitude: " + longitude;
+//            System.out.println(msg);
+//
+//            location.reset();
+//        };
 
-        List<String> providers = mLocationManager.getProviders(true);
-        Location bestLocation = null;
-        for (String provider : providers) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-            Location l = mLocationManager.getLastKnownLocation(provider);
+//        System.out.println("get best" + provider);
+//        long minTime = 60000;
+//        float minDistance = 5;
+//
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            return;
+//        }
+//        System.out.println("324234");
+//        locationManager.requestLocationUpdates(provider, Long.MIN_VALUE, Float.MAX_VALUE, locationListenerGPS, Looper.getMainLooper());
 
-            System.out.println(l.getLatitude() + l.getLongitude());
-            if (l == null) {
-                continue;
-            }
-            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
-                bestLocation = l;
-            }
-        }
-        if (bestLocation == null) {
-        }
-
-        mFusedLocationClient1 = LocationServices.getFusedLocationProviderClient(this);
-        locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(20 * 1000);
-        locationCallback = new LocationCallback() {
-
-
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                if (locationResult == null) {
-                    return;
-                }
-                for (Location location : locationResult.getLocations()) {
-                    if (location != null) {
-                        double wayLatitude = location.getLatitude();
-                        double wayLongitude = location.getLongitude();
-                    }
-                }
-            }
-        };
     }
 
     public void getAPNType() {
@@ -147,10 +145,8 @@ public class ServiceApp extends Service {
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         TelephonyManager mTelephony = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
 
-//
-//        if (networkInfo == null) {
-//            typeNetworkIsActive.put("Internet", "NOT_WORK");
-//        }
+        getStrengthCellSignal(mTelephony, networkInfo != null);
+
 //
 //        int nType = networkInfo.getType();
 //        if (nType == ConnectivityManager.TYPE_MOBILE) {
@@ -182,92 +178,83 @@ public class ServiceApp extends Service {
 //            typeNetworkIsActive.put(String.valueOf("Internet"), String.valueOf("WIFi: 0-∞"));
 //        }
 
-        getStrengthCellSignal(mTelephony);
+//        getStrengthCellSignal(mTelephony, I);
 
     }
 
-    public void getStrengthCellSignal(TelephonyManager mTelephony) {
+    public void getStrengthCellSignal(TelephonyManager mTelephony, boolean internetActive) {
 
-
-        TelephonyManager telephonyManager = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
-
-//        System.out.println(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P);
-//        System.out.println(Build.VERSION.SDK_INT + " " + Build.VERSION_CODES.P);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-//           SignalStrength signalStrength = telephonyManager.getSignalStrength();
-//           System.out.println("signal cccl " + signalStrength.getLevel());
-//        }
-
-        String strength = null;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-//        TelephonyManager mTelephony = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
+
+        String strength ;
         List<CellInfo> cellInfos = mTelephony.getAllCellInfo();
 
-        if(cellInfos != null) {
-            for (int i = 0 ; i < cellInfos.size() ; i++) {
+        if (cellInfos != null) {
+            for (int i = 0; i < cellInfos.size(); i++) {
                 if (cellInfos.get(i).isRegistered()) {
                     if (cellInfos.get(i) instanceof CellInfoWcdma) {
+                        simCardActive = true;
                         CellInfoWcdma cellInfoWcdma = (CellInfoWcdma) cellInfos.get(i);
                         CellSignalStrengthWcdma cellSignalStrengthWcdma = cellInfoWcdma.getCellSignalStrength();
-                        int levelSignal = cellSignalStrengthWcdma.getAsuLevel() - 115 ;
+                        int levelSignal = cellSignalStrengthWcdma.getAsuLevel() - 115;
 
-                        if (levelSignal <0 && levelSignal >= -70){
-                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Excellent");
+                        if (levelSignal < 0 && levelSignal >= -70) {
+                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Excellent, " + "Internet " + internetActive);
                             System.out.println(levelSignal + " " + "Excellent");
-                        }else if(levelSignal<= -71 &&levelSignal>= -85){
-                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Good");
+                        } else if (levelSignal <= -71 && levelSignal >= -85) {
+                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Good," + "Internet " + internetActive);
                             System.out.println(levelSignal + " " + "Good");
-                        }else  if (levelSignal<= -86 && levelSignal >= -100){
-                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Fair");
+                        } else if (levelSignal <= -86 && levelSignal >= -100) {
+                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Fair, "+ "Internet " + internetActive);
                             System.out.println(levelSignal + " " + "Fair");
-                        }else if(levelSignal <= -101 && levelSignal >= -109){
+                        } else if (levelSignal <= -101 && levelSignal >= -109) {
                             System.out.println(levelSignal + " " + "bad");
-                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "bad");
-                        }
-                        else {
+                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "bad, " + "Internet " +internetActive );
+                        } else {
                             System.out.println(levelSignal + " " + "Discconected");
-                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Discconected");
+                            typeNetworkIsActive.put("InformationSignal", "3G DBM: " + levelSignal + " " + "Discconected, " + "Internet " + internetActive);
                         }
 
                     } else if (cellInfos.get(i) instanceof CellInfoGsm) {
+                        simCardActive = true;
                         CellInfoGsm cellInfogsm = (CellInfoGsm) cellInfos.get(i);
                         CellSignalStrengthGsm cellSignalStrengthGsm = cellInfogsm.getCellSignalStrength();
 
-                        int levelSignal = cellSignalStrengthGsm.getAsuLevel()  - 113 ;
+                        int levelSignal = cellSignalStrengthGsm.getAsuLevel() - 113;
 
-                        if (levelSignal <0 && levelSignal >= -70){
-                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Excellent");
+                        if (levelSignal < 0 && levelSignal >= -70) {
+                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Excellent, " + "Internet " +internetActive);
                             System.out.println(levelSignal + " " + "Excellent");
-                        }else if(levelSignal<= -71 &&levelSignal>= -85){
-                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Good");
+                        } else if (levelSignal <= -71 && levelSignal >= -85) {
+                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Good, " + "Internet " +internetActive);
                             System.out.println(levelSignal + " " + "Good");
-                        }else  if (levelSignal<= -86 && levelSignal >= -100){
-                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Fair");
+                        } else if (levelSignal <= -86 && levelSignal >= -100) {
+                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Fair, " + "Internet " +internetActive);
                             System.out.println(levelSignal + " " + "Fair");
-                        }else if(levelSignal <= -101 && levelSignal >= -109){
+                        } else if (levelSignal <= -101 && levelSignal >= -109) {
                             System.out.println(levelSignal + " " + "bad");
-                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "bad");
-                        }
-                        else {
+                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "bad, "+ "Internet " +internetActive);
+                        } else {
                             System.out.println(levelSignal + " " + "Discconected");
-                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Discconected");
+                            typeNetworkIsActive.put("InformationSignal", "EDGE DBM: " + levelSignal + " " + "Discconected, "+ "Internet " +internetActive);
                         }
 
                     } else if (cellInfos.get(i) instanceof CellInfoLte) {
+                        simCardActive = true;
                         CellInfoLte cellInfoLte = (CellInfoLte) cellInfos.get(i);
-                        CellSignalStrengthLte cellSignalStrengthLte = cellInfoLte.getCellSignalStrength();
-                        strength = String.valueOf(cellSignalStrengthLte.getDbm());
-                        String [] mass = cellInfoLte.toString().split(" ");
 
-                        char [] arr = mass[10].toCharArray() ;
-                        int[] n = new int[2];
-                        int size = 0 ;
-                        for (Character c : arr){
-                            if(Character.isDigit(c)){
-                                n[size] = Character.getNumericValue(c);
-                                size ++ ;
+                        CellSignalStrengthLte cellSignalStrengthLte = cellInfoLte.getCellSignalStrength();
+                        String[] mass = cellInfoLte.toString().split(" ");
+
+                        char[] arr = mass[10].toCharArray();
+                        ArrayList<Integer> n = new ArrayList();
+//                        int size = 0;
+                        for (Character c : arr) {
+                            if (Character.isDigit(c)) {
+                                n.add(Character.getNumericValue(c));
+//                                size++;
                             }
                         }
 
@@ -279,37 +266,33 @@ public class ServiceApp extends Service {
 
                         int bigNum = 0;
                         int factor = 1;
-                        for (int ss = strBigNum.length()-1; ss >= 0; ss--) {
+                        for (int ss = strBigNum.length() - 1; ss >= 0; ss--) {
                             bigNum += Character.digit(strBigNum.charAt(ss), 10) * factor;
                             factor *= 10;
                         }
 
-                        int x = 0 ;
-                        for (int s = 0; s<n.length; s++) {
-                            x += Integer.bitCount(n[s]);
-                        }
-                        int levelSignal = bigNum  - 141 ;
+//                        int x = 0;
+//                        for (int s = 0; s < n.size(); s++) {
+//                            x += Integer.bitCount(n.get(s));
+//                        }
+                        int levelSignal = bigNum - 141;
 
-
-
-                        if (levelSignal <0 && levelSignal >= -70){
-                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Excellent");
+                        if (levelSignal < 0 && levelSignal >= -70) {
+                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Excellent, " + "Internet " +internetActive);
                             System.out.println(levelSignal + " " + "Excellent");
-                        }else if(levelSignal<= -71 &&levelSignal>= -85){
-                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Good");
+                        } else if (levelSignal <= -71 && levelSignal >= -85) {
+                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Good, "  + "Internet " +internetActive );
                             System.out.println(levelSignal + " " + "Good");
-                        }else  if (levelSignal<= -86 && levelSignal >= -100){
-                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Fair");
+                        } else if (levelSignal <= -86 && levelSignal >= -100) {
+                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Fair, " + "Internet " +internetActive);
                             System.out.println(levelSignal + " " + "Fair");
-                        }else if(levelSignal <= -101 && levelSignal >= -109){
+                        } else if (levelSignal <= -101 && levelSignal >= -109) {
                             System.out.println(levelSignal + " " + "bad");
-                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "bad");
-                        }
-                        else {
+                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "bad, " + "Internet " +internetActive);
+                        } else {
                             System.out.println(levelSignal + " " + "Discconected");
-                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Discconected");
+                            typeNetworkIsActive.put("InformationSignal", "LTE DBM: " + levelSignal + " " + "Discconected, " + "Internet " +internetActive);
                         }
-                        n = null;
 
                     } else if (cellInfos.get(i) instanceof CellInfoCdma) {
                         CellInfoCdma cellInfoCdma = (CellInfoCdma) cellInfos.get(i);
@@ -317,31 +300,28 @@ public class ServiceApp extends Service {
                         strength = String.valueOf(cellSignalStrengthCdma.getDbm());
 
                         System.out.println(cellSignalStrengthCdma.toString());
-                        System.out.println("strength4 " + strength);
-                        System.out.println("strength4_1 " + cellSignalStrengthCdma.getLevel());
-                        System.out.println("strength4_2 " + cellSignalStrengthCdma.getAsuLevel());
-
+                        simCardActive = true ;
                     }
                 }
             }
-        }else {
+        } else {
 
-
-
+            typeNetworkIsActive.put("InformationSignal", " Internet not work");
+            simCardActive = false ;
         }
 
-        mTelephony = null ;
+        mTelephony = null;
     }
 
-    public void getStatusNetwork(){
+    public void getStatusNetwork() {
 
-        NetworkRequest networkRequest = null ;
-        ConnectivityManager.NetworkCallback networkCallback = null ;
+        NetworkRequest networkRequest = null;
+        ConnectivityManager.NetworkCallback networkCallback = null;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             networkRequest = new NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                     .build();
@@ -349,7 +329,7 @@ public class ServiceApp extends Service {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 
-                networkCallback = new ConnectivityManager.NetworkCallback() {
+            networkCallback = new ConnectivityManager.NetworkCallback() {
 
                 @Override
                 public void onAvailable(@NonNull Network network) {
@@ -365,29 +345,62 @@ public class ServiceApp extends Service {
                 public void onCapabilitiesChanged(@NonNull Network network, @NonNull NetworkCapabilities networkCapabilities) {
                     super.onCapabilitiesChanged(network, networkCapabilities);
                     boolean hasCellular = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR);
-                    System.out.println(hasCellular);
                     boolean hasWifi = networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-                    System.out.println(hasWifi);
                 }
             };
         }
 
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            ConnectivityManager connectivityManager = (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
             connectivityManager.requestNetwork(networkRequest, networkCallback);
         }
 
-
     }
 
-    public double getSpeedNetwork(){
-
-
+    public double getSpeedNetwork() {
         return Double.parseDouble(null);
     }
 
-//      private void getLocation() {
+    private void getLocation() {
+
+        //ConnectivityManager connMgr = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+        TelephonyManager mTelephony = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
+
+         //     NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+//      System.out.println(networkInfo.getState() + " " + networkInfo.getTypeName());
+
+        LocationListener locationListenerTSD = new LocationListener() {
+            @Override
+            public void onLocationChanged(@NonNull Location location) {
+                location.getAccuracy() ;
+                latitude = location.getLatitude();
+                longitude = location.getLongitude() ;
+                location.reset();
+            }
+        };
+
+        LocationManager locationManagerT = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        Location location = locationManagerT.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+//        List<GnssAntennaInfo> lo = locationManagerT.getGnssAntennaInfos() ;
+//        for (GnssAntennaInfo s : lo){
+//            System.out.println(s);
+//        }
+
+        locationManagerT.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, 0, locationListenerTSD, Looper.getMainLooper());
+
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            return;
+//        }
+//        locationManagerT.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,10,0, locationListenerTSD, Looper.getMainLooper());
+
+//        Location imHere = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
 //        LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
 //        boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 //        boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -395,7 +408,16 @@ public class ServiceApp extends Service {
 //        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 //        NetworkInfo netInfo = cm.getActiveNetworkInfo();
 //
-////      String bestProvider = locationManager.getBestProvider(new Criteria(), true);
+//        Criteria criteria = new Criteria();
+//        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+//        List<String> lProviders = locationManager.getProviders(false);
+//        String provider = locationManager.getBestProvider(criteria, true);
+//
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//            return;
+//        }
+//        Location loc = locationManager.getLastKnownLocation(provider);
+//
 //
 //        if (netInfo != null && netInfo.isConnected()) {
 //            isNetworkEnabled = true;
@@ -406,15 +428,19 @@ public class ServiceApp extends Service {
 //        Log.i("isGPSEnabled ", String.valueOf(isGPSEnabled) + " isNetwork" + String.valueOf(isNetworkEnabled) + " isPass" + String.valueOf(isPassiveProvider));
 //        LocationListener locationListener = new LocationListener() {
 //
+//            @Override
+//            public void onFlushComplete(int requestCode) {
+//                System.out.println("asdasdf");
+//            }
+//
 //            public void onLocationChanged(Location location) {
+//
 //
 //                double latitude = location.getLatitude();
 //                double longitude = location.getLongitude();
 //
-//                latitude = location.getLatitude();
-//                longitude = location.getLongitude();
-//
-//                coord.put(latitude,longitude);
+//                Log.d("sss_121",  String.valueOf(longitude) + " " + String.valueOf(latitude));
+////                coord.put(latitude,longitude);
 //
 ////                JSONObject json = new JSONObject() ;
 ////                try {
@@ -423,9 +449,9 @@ public class ServiceApp extends Service {
 ////                    e.printStackTrace();
 ////                }
 //
-//                location.reset();
-//
 //            }
+//
+//                location.reset();
 //
 //            public void onStatusChanged(String provider, int status, Bundle extras) {
 //                Log.i("onStusChade", provider);
@@ -434,46 +460,46 @@ public class ServiceApp extends Service {
 //            public void onProviderEnabled(String provider) {
 //                Log.i("onStusChade", provider);
 //            }
-//
 //            public void onProviderDisabled(String provider) {
 //                Log.i("provider", "false");
 //            }
+//
 //        };
 //
 //        try {
 //
-//            if (isNetworkEnabled) {
+////            if (isNetworkEnabled) {
 //
 //                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 //                    return;
 //                }
 //
-//                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-//                Location loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) ;
-//                latitude = loc.getLatitude() ;
-//                longitude = loc.getLongitude() ;
+//                System.out.println(provider);
+//                Location location = locationManager.getLastKnownLocation(provider);
+//                System.out.println(location.getProvider() + location.getLatitude() + " " + location.getLongitude());
+//                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener, Looper.getMainLooper());
+//                //Location loc = locationManager.getLastKnownLocation(provider) ;
 //
-//            }else{
+////            }else{
 //
-//                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
-//                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) ;
-//                latitude = loc.getLatitude() ;
-//                longitude = loc.getLongitude() ;
-//            }
+////                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Long.MIN_VALUE, Float.MAX_VALUE, locationListener, Looper.getMainLooper());
+////                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) ;
+////                latitude = loc.getLatitude() ;
+////                longitude = loc.getLongitude() ;
+////            }
 //
 //        } catch (NullPointerException ex) {
 //
 //            ex.printStackTrace();
 //        }
 
-//    }
+    }
 
     public void writesTimeWorkTSD() {
 
         try {
 
-            count =count +1 ;
-
+            count = count +1 ;
             if(count <4){
                 return;
             }
@@ -510,9 +536,7 @@ public class ServiceApp extends Service {
 //                startActivity(launchIntent);
 //               }
 //            }
-
             }
-
 
 //            if (!line.equals(null)) {
 //
@@ -675,7 +699,6 @@ public class ServiceApp extends Service {
         return Service.START_STICKY;
     }
 
-
     final Runnable run = new Runnable() {
 
         @Override
@@ -702,10 +725,10 @@ public class ServiceApp extends Service {
                     String timeOfTheDay = formatDate.format(d) + "\n" ;
                     String dateForLocation = formatDate.format(d) ;
                     downloadFiles(dayOfTheWeek, timeOfTheDay, dateForLocation) ;
-                    Log.i("TIME_LOG", timeOfTheDay);
 //                    writesTimeWorkTSD() ;
                     getAPNType() ;
 //                    getStatusNetwork() ;
+                    getLocation();
                     Thread.sleep(20000);
                 }
 
@@ -742,11 +765,10 @@ public class ServiceApp extends Service {
 
 //        System.out.println(name_pathToFile);
 
-        getLocation() ;
+//        getLocation() ;
         File f = new File(name_pathToFile);
 
         if(f.exists() && !f.isDirectory()) {
-
             List<LogsTerminal> detailsList = new ArrayList<>();
             detailsList.add(new LogsTerminal(formattedDate, String.valueOf(locationisOn), String.valueOf(latitude) + " " + longitude, network));
             writeCourseList(detailsList, String.valueOf(path), name_pathToFile) ;
@@ -773,7 +795,6 @@ public class ServiceApp extends Service {
                 jsonObject.add("logs" ,jsonArray);
                 fr.write(jsonObject.toString());
                 fr.flush();
-//              fr.close();
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -819,7 +840,6 @@ public class ServiceApp extends Service {
                     } else {
 
                         String packageName = comps[8];
-                        System.out.println(packageName);
                         if (packageName.equals(tsdTaburetka)) {
                             isHaveInstanceProccesTSD = true;
                         }
@@ -842,7 +862,6 @@ public class ServiceApp extends Service {
 
         long lastChecked = System.currentTimeMillis() - firstCall1c ;
 
-//        System.out.println("1cc_time" + lastChecked);
         if(lastChecked > 180000){
             PackageManager pac = getPackageManager() ;
             Intent launchIntent = pac.getLaunchIntentForPackage("com.treedo.taburetka.tsd");
